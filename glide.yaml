@@ -7,3 +7,4 @@ import:
 - package: github.com/nsqio/go-nsq
   version: ^1.0.6
 - package: github.com/valyala/fasthttp
+- package: github.com/uber-go/zap

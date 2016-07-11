@@ -1,5 +1,5 @@
-hash: 6d41718d1d5447402808c90534380f9217a2d8c2d9e14017d1210ae70d1f972b
-updated: 2016-07-11T18:38:15.633710961-03:00
+hash: 896f38e67f513cc069b936db485f39877491d9f48b1076c5e2132357c723dc0a
+updated: 2016-07-11T19:25:18.31357888-03:00
 imports:
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
@@ -27,6 +27,10 @@ imports:
   version: a272c3cbd5ff80a5bf5c5603df50183f9f3f7324
 - name: github.com/spf13/pflag
   version: 367864438f1b1a3c7db4da06a2f55b144e6784e0
+- name: github.com/uber-go/atomic
+  version: e682c1008ac17bf26d2e4b5ad6cdd08520ed0b22
+- name: github.com/uber-go/zap
+  version: 63d56df197a79e16899d69b6a7665cb9b7c8ea99
 - name: github.com/valyala/bytebufferpool
   version: a517d2d1537f5b02e9f6c23d4794160c6c2bc157
 - name: github.com/valyala/fasthttp

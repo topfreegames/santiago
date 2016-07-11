@@ -16,11 +16,13 @@ import (
 	"time"
 
 	"github.com/nsqio/go-nsq"
+	"github.com/uber-go/zap"
 	"github.com/valyala/fasthttp"
 )
 
 //Worker is a worker implementation that keeps processing webhooks
 type Worker struct {
+	Logger              zap.Logger
 	LookupHost          string
 	LookupPort          int
 	LookupPollInterval  time.Duration
@@ -52,12 +54,30 @@ func New(
 	}
 }
 
-//Handle a single message from NSQ
-func (w *Worker) Handle(msg *nsq.Message) error {
+func (w *Worker) doRequest(method, url, payload string) (int, string, error) {
 	client := fasthttp.Client{
 		Name: "santiago",
 	}
 
+	req := fasthttp.AcquireRequest()
+	req.Header.SetMethod(method)
+	req.SetRequestURI(url)
+	req.AppendBody([]byte(payload))
+	resp := fasthttp.AcquireResponse()
+
+	timeout := time.Duration(5) * time.Second
+
+	err := client.DoTimeout(req, resp, timeout)
+	if err != nil {
+		fmt.Printf("Could not request webhook %s: %s\n", url, err.Error())
+		return 0, "", err
+	}
+
+	return resp.StatusCode(), string(resp.Body()), nil
+}
+
+//Handle a single message from NSQ
+func (w *Worker) Handle(msg *nsq.Message) error {
 	var result map[string]interface{}
 	err := json.Unmarshal(msg.Body, &result)
 	if err != nil {
@@ -71,28 +91,12 @@ func (w *Worker) Handle(msg *nsq.Message) error {
 		return err
 	}
 
-	fmt.Println(result["url"])
-
-	req := fasthttp.AcquireRequest()
-	req.Header.SetMethod(result["method"].(string))
-	req.SetRequestURI(result["url"].(string))
-	req.AppendBody(payloadJSON)
-	resp := fasthttp.AcquireResponse()
-
-	timeout := time.Duration(5) * time.Second
-
-	err = client.DoTimeout(req, resp, timeout)
-	if err != nil {
-		fmt.Printf("Could not request webhook %s: %s\n", result["url"], err.Error())
+	status, _, err := w.doRequest(result["method"].(string), result["url"].(string), string(payloadJSON))
+	if status > 399 {
+		fmt.Println("Error requesting webhook", status)
 		return err
 	}
 
-	if resp.StatusCode() > 399 {
-		fmt.Println("Error requesting webhook", resp.StatusCode())
-		return err
-	}
-
-	fmt.Println(string(resp.Body()))
 	return nil
 }
 
