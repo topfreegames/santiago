@@ -7,12 +7,18 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 	"github.com/topfreegames/santiago/worker/handler"
 )
 
 var nsqHost string
 var nsqPort int
+var nsqLookupPollInterval int
+var nsqMaxAttempts int
+var nsqMaxInFlight int
+var nsqDefaultRequeueDelay int
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
@@ -21,8 +27,12 @@ var startCmd = &cobra.Command{
 	Long:  `starts a new worker listening for webhooks`,
 	Run: func(cmd *cobra.Command, args []string) {
 		w := &worker.Worker{
-			NSQLookupDHost: nsqHost,
-			NSQLookupDPort: nsqPort,
+			LookupHost:          nsqHost,
+			LookupPort:          nsqPort,
+			LookupPollInterval:  time.Duration(nsqLookupPollInterval) * time.Second,
+			MaxAttempts:         nsqMaxAttempts,
+			MaxMessagesInFlight: nsqMaxInFlight,
+			DefaultRequeueDelay: time.Duration(nsqDefaultRequeueDelay) * time.Second,
 		}
 
 		w.Start()
@@ -40,6 +50,10 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	startCmd.Flags().StringVarP(&nsqHost, "nsqhost", "n", "127.0.0.1", "NSQ Lookup host address")
-	startCmd.Flags().IntVarP(&nsqPort, "nsqport", "p", 7778, "NSQ Lookup host port")
+	startCmd.Flags().StringVarP(&nsqHost, "host", "n", "127.0.0.1", "NSQ Lookup host address")
+	startCmd.Flags().IntVarP(&nsqPort, "port", "p", 7778, "NSQ Lookup host port")
+	startCmd.Flags().IntVarP(&nsqLookupPollInterval, "interval", "i", 15, "NSQ Lookup update interval in seconds")
+	startCmd.Flags().IntVarP(&nsqMaxAttempts, "max-attempts", "m", 10, "NSQ max attempts before error")
+	startCmd.Flags().IntVarP(&nsqMaxInFlight, "max-inflight", "f", 150, "NSQ max messages in flight")
+	startCmd.Flags().IntVarP(&nsqMaxInFlight, "rq-delay", "r", 150, "NSQ default requeue delay in seconds")
 }

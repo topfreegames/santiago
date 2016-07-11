@@ -19,22 +19,28 @@ import (
 
 //Worker is a worker implementation that keeps processing webhooks
 type Worker struct {
-	NSQLookupDHost string
-	NSQLookupDPort int
+	LookupHost          string
+	LookupPort          int
+	LookupPollInterval  time.Duration
+	MaxAttempts         int
+	MaxMessagesInFlight int
+	DefaultRequeueDelay time.Duration
 }
 
+//Handle a single message from NSQ
 func (w *Worker) Handle(msg *nsq.Message) error {
 	fmt.Println(string(msg.Body))
 	return nil
 }
 
+//Subscribe to messages from NSQ
 func (w *Worker) Subscribe() error {
-	nsqLookupPath := fmt.Sprintf("%s:%d", w.NSQLookupDHost, w.NSQLookupDPort)
+	nsqLookupPath := fmt.Sprintf("%s:%d", w.LookupHost, w.LookupPort)
 	config := nsq.NewConfig()
-	config.LookupdPollInterval = time.Duration(15) * time.Second
-	config.MaxAttempts = 10
-	config.MaxInFlight = 150
-	config.DefaultRequeueDelay = time.Duration(15) * time.Second
+	config.LookupdPollInterval = w.LookupPollInterval
+	config.MaxAttempts = uint16(w.MaxAttempts)
+	config.MaxInFlight = w.MaxMessagesInFlight
+	config.DefaultRequeueDelay = w.DefaultRequeueDelay
 
 	q, err := nsq.NewConsumer("webhook", "main", config)
 	if err != nil {
@@ -53,6 +59,7 @@ func (w *Worker) Subscribe() error {
 	return nil
 }
 
+//Start a new worker
 func (w *Worker) Start() error {
 	if err := w.Subscribe(); err != nil {
 		return err
