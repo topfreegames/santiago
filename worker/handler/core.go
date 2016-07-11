@@ -22,6 +22,7 @@ import (
 
 //Worker is a worker implementation that keeps processing webhooks
 type Worker struct {
+	Topic               string
 	Logger              zap.Logger
 	LookupHost          string
 	LookupPort          int
@@ -34,6 +35,7 @@ type Worker struct {
 //NewDefault returns a new worker with default options
 func NewDefault(lookupHost string, lookupPort int) *Worker {
 	return New(
+		"webhook",
 		lookupHost, lookupPort, time.Duration(15)*time.Second,
 		10, 150, time.Duration(15)*time.Second,
 	)
@@ -41,10 +43,11 @@ func NewDefault(lookupHost string, lookupPort int) *Worker {
 
 //New creates a new worker instance
 func New(
-	lookupHost string, lookupPort int, lookupPollInterval time.Duration,
+	topic string, lookupHost string, lookupPort int, lookupPollInterval time.Duration,
 	maxAttempts int, maxMessagesInFlight int, defaultRequeueDelay time.Duration,
 ) *Worker {
 	return &Worker{
+		Topic:               topic,
 		LookupHost:          lookupHost,
 		LookupPort:          lookupPort,
 		LookupPollInterval:  lookupPollInterval,
@@ -54,7 +57,7 @@ func New(
 	}
 }
 
-func (w *Worker) doRequest(method, url, payload string) (int, string, error) {
+func (w *Worker) DoRequest(method, url, payload string) (int, string, error) {
 	client := fasthttp.Client{
 		Name: "santiago",
 	}
@@ -79,6 +82,7 @@ func (w *Worker) doRequest(method, url, payload string) (int, string, error) {
 //Handle a single message from NSQ
 func (w *Worker) Handle(msg *nsq.Message) error {
 	var result map[string]interface{}
+	fmt.Println("RECEIVED MESSAGE", string(msg.Body))
 	err := json.Unmarshal(msg.Body, &result)
 	if err != nil {
 		fmt.Println("Could not process body", err)
@@ -91,7 +95,7 @@ func (w *Worker) Handle(msg *nsq.Message) error {
 		return err
 	}
 
-	status, _, err := w.doRequest(result["method"].(string), result["url"].(string), string(payloadJSON))
+	status, _, err := w.DoRequest(result["method"].(string), result["url"].(string), string(payloadJSON))
 	if status > 399 {
 		fmt.Println("Error requesting webhook", status)
 		return err
@@ -109,7 +113,7 @@ func (w *Worker) Subscribe() error {
 	config.MaxInFlight = w.MaxMessagesInFlight
 	config.DefaultRequeueDelay = w.DefaultRequeueDelay
 
-	q, err := nsq.NewConsumer("webhook", "main", config)
+	q, err := nsq.NewConsumer(w.Topic, "main", config)
 	if err != nil {
 		log.Panic("Could not create consumer...")
 		return err

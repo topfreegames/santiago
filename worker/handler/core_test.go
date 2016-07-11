@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/nsqio/go-nsq"
+	"github.com/satori/go.uuid"
 	. "github.com/topfreegames/santiago/worker/handler"
 
 	. "github.com/onsi/ginkgo"
@@ -89,5 +90,40 @@ var _ = Describe("Santiago Worker", func() {
 			resp := (*responses)[0]["payload"].(map[string]interface{})
 			Expect(int(resp["qwe"].(float64))).To(Equal(123))
 		})
+	})
+
+	Describe("Message subscription", func() {
+		It("should subscribe to webhook", func() {
+			queue := uuid.NewV4().String()
+			responses := startRouteHandler([]string{"/webhook-subscribed"}, 52525)
+
+			payload := map[string]interface{}{
+				"method":  "POST",
+				"url":     "http://localhost:52525/webhook-subscribed",
+				"payload": map[string]interface{}{"qwe": 123},
+			}
+			payloadJSON, _ := json.Marshal(payload)
+
+			worker := New(
+				queue,
+				"127.0.0.1", 7778, time.Duration(15)*time.Millisecond,
+				10, 150, time.Duration(15)*time.Millisecond,
+			)
+
+			err := worker.Subscribe()
+			Expect(err).NotTo(HaveOccurred())
+			time.Sleep(50 * time.Millisecond)
+
+			status, _, err := worker.DoRequest("POST", fmt.Sprintf("http://127.0.0.1:7780/put?topic=%s", queue), string(payloadJSON))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).To(Equal(200))
+			time.Sleep(300 * time.Millisecond)
+
+			Expect(*responses).To(HaveLen(1))
+
+			resp := (*responses)[0]["payload"].(map[string]interface{})
+			Expect(int(resp["qwe"].(float64))).To(Equal(123))
+		})
+
 	})
 })
