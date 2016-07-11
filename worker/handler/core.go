@@ -7,6 +7,7 @@
 package worker
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/nsqio/go-nsq"
+	"github.com/valyala/fasthttp"
 )
 
 //Worker is a worker implementation that keeps processing webhooks
@@ -52,7 +54,45 @@ func New(
 
 //Handle a single message from NSQ
 func (w *Worker) Handle(msg *nsq.Message) error {
-	fmt.Println(string(msg.Body))
+	client := fasthttp.Client{
+		Name: "santiago",
+	}
+
+	var result map[string]interface{}
+	err := json.Unmarshal(msg.Body, &result)
+	if err != nil {
+		fmt.Println("Could not process body", err)
+		return err
+	}
+
+	payloadJSON, err := json.Marshal(result["payload"])
+	if err != nil {
+		fmt.Println("Could not process payload", err)
+		return err
+	}
+
+	fmt.Println(result["url"])
+
+	req := fasthttp.AcquireRequest()
+	req.Header.SetMethod(result["method"].(string))
+	req.SetRequestURI(result["url"].(string))
+	req.AppendBody(payloadJSON)
+	resp := fasthttp.AcquireResponse()
+
+	timeout := time.Duration(5) * time.Second
+
+	err = client.DoTimeout(req, resp, timeout)
+	if err != nil {
+		fmt.Printf("Could not request webhook %s: %s\n", result["url"], err.Error())
+		return err
+	}
+
+	if resp.StatusCode() > 399 {
+		fmt.Println("Error requesting webhook", resp.StatusCode())
+		return err
+	}
+
+	fmt.Println(string(resp.Body()))
 	return nil
 }
 
