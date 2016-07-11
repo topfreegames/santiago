@@ -55,6 +55,7 @@ test-services-shutdown: test-nsq-shutdown
 
 test-nsq: test-nsq-shutdown
 	@rm -rf /tmp/santiago-nsq.log
+	@mkdir -p /tmp/nsqd/{1,2,3}
 	@forego start -f ./scripts/TestNSQProcfile 2>&1 > /tmp/santiago-nsq.log &
 
 test-nsq-shutdown:

@@ -1,3 +1,5 @@
 lookup: nsqlookupd --broadcast-address=localhost --tcp-address=127.0.0.1:7777 --http-address=127.0.0.1:7778
-nsqd: nsqd --broadcast-address=localhost --lookupd-tcp-address=127.0.0.1:7777 -data-path /tmp --tcp-address=127.0.0.1:7779 --http-address=127.0.0.1:7780
+nsqd: nsqd --broadcast-address=localhost --lookupd-tcp-address=127.0.0.1:7777 -data-path /tmp/nsqd/1 --tcp-address=127.0.0.1:7779 --http-address=127.0.0.1:7780 --mem-queue-size=0 --worker-id=1
+nsqd2: nsqd --broadcast-address=localhost --lookupd-tcp-address=127.0.0.1:7777 -data-path /tmp/nsqd/2 --tcp-address=127.0.0.1:7781 --http-address=127.0.0.1:7782 --mem-queue-size=0 --worker-id=2
+nsqd3: nsqd --broadcast-address=localhost --lookupd-tcp-address=127.0.0.1:7777 -data-path /tmp/nsqd/3 --tcp-address=127.0.0.1:7783 --http-address=127.0.0.1:7784 --mem-queue-size=0 --worker-id=3
 admin: nsqadmin --lookupd-http-address=127.0.0.1:7778
