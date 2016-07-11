@@ -1,0 +1,3 @@
+lookup: nsqlookupd
+nsqd: nsqd --lookupd-tcp-address=127.0.0.1:4160 -data-path /tmp
+admin: nsqadmin --lookupd-http-address=127.0.0.1:4161

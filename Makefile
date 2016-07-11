@@ -1,5 +1,5 @@
 PACKAGES = $(shell glide novendor)
-DIRS = $(shell find ./ -type f -not -path '*/\.*' | grep '.go' | grep -v "^[.]\/vendor" | xargs -n1 dirname | sort | uniq | grep -v '^.$$')
+DIRS = $(shell find . -type f -not -path '*/\.*' | grep '.go' | grep -v "^[.]\/vendor" | xargs -n1 dirname | sort | uniq | grep -v '^.$$')
 
 setup-hooks:
 	@cd .git/hooks && ln -sf ../../hooks/pre-commit.sh pre-commit
@@ -13,8 +13,12 @@ setup: setup-hooks
 build:
 	@go build $(PACKAGES)
 
-test:
-	@ginkgo --cover $(DIRS)
+test: services
+	@ginkgo --cover $(DIRS); \
+    case "$$?" in \
+    "0") $(MAKE) services-shutdown; exit 0;; \
+	*) $(MAKE) services-shutdown; exit 1;; \
+    esac;
 
 test-coverage: test
 	@rm -rf _build
@@ -24,3 +28,14 @@ test-coverage: test
 
 test-coverage-html: test-coverage
 	@go tool cover -html=_build/test-coverage-all.out
+
+services: nsq
+
+services-shutdown: nsq-shutdown
+
+nsq: nsq-shutdown
+	@rm -rf /tmp/santiago-nsq.log
+	@forego start -f ./scripts/NSQProcfile 2>&1 > /tmp/santiago-nsq.log &
+
+nsq-shutdown:
+	@-ps aux | egrep forego | egrep -v egrep | awk ' { print $$2 } ' | xargs kill -hup
