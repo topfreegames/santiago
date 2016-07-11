@@ -21,17 +21,14 @@ import (
 type Worker struct {
 	NSQLookupDHost string
 	NSQLookupDPort int
-	received       chan bool
 }
 
 func (w *Worker) Handle(msg *nsq.Message) error {
-	w.received <- true
 	fmt.Println(string(msg.Body))
 	return nil
 }
 
-func (w *Worker) Start() {
-	w.received = make(chan bool)
+func (w *Worker) Subscribe() error {
 	nsqLookupPath := fmt.Sprintf("%s:%d", w.NSQLookupDHost, w.NSQLookupDPort)
 	config := nsq.NewConfig()
 	config.LookupdPollInterval = time.Duration(15) * time.Second
@@ -42,7 +39,7 @@ func (w *Worker) Start() {
 	q, err := nsq.NewConsumer("webhook", "main", config)
 	if err != nil {
 		log.Panic("Could not create consumer...")
-		return
+		return err
 	}
 
 	q.AddHandler(nsq.HandlerFunc(w.Handle))
@@ -50,8 +47,16 @@ func (w *Worker) Start() {
 	err = q.ConnectToNSQLookupd(nsqLookupPath)
 	if err != nil {
 		log.Panic("Could not connect.")
+		return err
 	}
 
+	return nil
+}
+
+func (w *Worker) Start() error {
+	if err := w.Subscribe(); err != nil {
+		return err
+	}
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -60,4 +65,6 @@ func (w *Worker) Start() {
 		done <- true
 	}()
 	<-done
+
+	return nil
 }
