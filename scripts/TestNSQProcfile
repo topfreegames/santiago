@@ -1,0 +1,3 @@
+lookup: nsqlookupd --broadcast-address=localhost --tcp-address=127.0.0.1:7777 --http-address=127.0.0.1:7778
+nsqd: nsqd --broadcast-address=localhost --lookupd-tcp-address=127.0.0.1:7777 -data-path /tmp --tcp-address=127.0.0.1:7779 --http-address=127.0.0.1:7780
+admin: nsqadmin --lookupd-http-address=127.0.0.1:7778
