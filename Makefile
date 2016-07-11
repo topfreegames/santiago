@@ -34,6 +34,7 @@ nsq-shutdown:
 	@-ps aux | egrep forego | egrep -v egrep | awk ' { print $$2 } ' | xargs kill -hup
 
 test: test-services
+	@echo "$(DIRS)"
 	@ginkgo --cover $(DIRS); \
     case "$$?" in \
     "0") $(MAKE) services-shutdown; exit 0;; \

@@ -27,6 +27,29 @@ type Worker struct {
 	DefaultRequeueDelay time.Duration
 }
 
+//NewDefault returns a new worker with default options
+func NewDefault(lookupHost string, lookupPort int) *Worker {
+	return New(
+		lookupHost, lookupPort, time.Duration(15)*time.Second,
+		10, 150, time.Duration(15)*time.Second,
+	)
+}
+
+//New creates a new worker instance
+func New(
+	lookupHost string, lookupPort int, lookupPollInterval time.Duration,
+	maxAttempts int, maxMessagesInFlight int, defaultRequeueDelay time.Duration,
+) *Worker {
+	return &Worker{
+		LookupHost:          lookupHost,
+		LookupPort:          lookupPort,
+		LookupPollInterval:  lookupPollInterval,
+		MaxAttempts:         maxAttempts,
+		MaxMessagesInFlight: maxMessagesInFlight,
+		DefaultRequeueDelay: defaultRequeueDelay,
+	}
+}
+
 //Handle a single message from NSQ
 func (w *Worker) Handle(msg *nsq.Message) error {
 	fmt.Println(string(msg.Body))

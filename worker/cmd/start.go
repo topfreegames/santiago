@@ -26,14 +26,14 @@ var startCmd = &cobra.Command{
 	Short: "starts a worker",
 	Long:  `starts a new worker listening for webhooks`,
 	Run: func(cmd *cobra.Command, args []string) {
-		w := &worker.Worker{
-			LookupHost:          nsqHost,
-			LookupPort:          nsqPort,
-			LookupPollInterval:  time.Duration(nsqLookupPollInterval) * time.Second,
-			MaxAttempts:         nsqMaxAttempts,
-			MaxMessagesInFlight: nsqMaxInFlight,
-			DefaultRequeueDelay: time.Duration(nsqDefaultRequeueDelay) * time.Second,
-		}
+		w := worker.New(
+			nsqHost,
+			nsqPort,
+			time.Duration(nsqLookupPollInterval)*time.Second,
+			nsqMaxAttempts,
+			nsqMaxInFlight,
+			time.Duration(nsqDefaultRequeueDelay)*time.Second,
+		)
 
 		w.Start()
 	},
@@ -55,5 +55,5 @@ func init() {
 	startCmd.Flags().IntVarP(&nsqLookupPollInterval, "interval", "i", 15, "NSQ Lookup update interval in seconds")
 	startCmd.Flags().IntVarP(&nsqMaxAttempts, "max-attempts", "m", 10, "NSQ max attempts before error")
 	startCmd.Flags().IntVarP(&nsqMaxInFlight, "max-inflight", "f", 150, "NSQ max messages in flight")
-	startCmd.Flags().IntVarP(&nsqMaxInFlight, "rq-delay", "r", 150, "NSQ default requeue delay in seconds")
+	startCmd.Flags().IntVarP(&nsqMaxInFlight, "rq-delay", "r", 15, "NSQ default requeue delay in seconds")
 }
