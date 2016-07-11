@@ -1,4 +1,10 @@
-hash: ec94b4b19d8ce4e8269fe2612255d5941872522d08bbd574862f88e19726a593
-updated: 2016-07-11T14:29:56.213216529-03:00
-imports: []
+hash: 02a71b8a9042bb20481b0fc1cbcbd38d838df72e4de25b2236cf3fabd8f34c53
+updated: 2016-07-11T14:58:08.942489716-03:00
+imports:
+- name: github.com/nsqio/go-nsq
+  version: d71fb89c9e0263aaed89645b0b168e11ccf597b1
+- name: github.com/onsi/ginkgo
+  version: 462326b1628e124b23f42e87a8f2750e3c4e2d24
+- name: github.com/onsi/gomega
+  version: a78ae492d53aad5a7a232d0d0462c14c400e3ee7
 testImports: []
