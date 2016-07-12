@@ -9,3 +9,4 @@ import:
 - package: github.com/valyala/fasthttp
 - package: github.com/uber-go/zap
 - package: github.com/satori/go.uuid
+- package: github.com/Joker/jade
