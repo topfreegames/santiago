@@ -21,11 +21,3 @@ func FailWith(status int, message string, c *iris.Context) {
 	c.SetStatusCode(status)
 	c.Write(string(result))
 }
-
-// SucceedWith sends payload to user with status 200
-func SucceedWith(payload map[string]interface{}, c *iris.Context) {
-	payload["success"] = true
-	result, _ := json.Marshal(payload)
-	c.SetStatusCode(200)
-	c.Write(string(result))
-}

@@ -1,0 +1,21 @@
+language: go
+
+go:
+  - 1.6.2
+
+sudo: required
+
+services:
+  - docker
+
+install:
+  - go get github.com/nsqio/nsq/...
+  - make setup
+
+script:
+  - make test-coverage
+
+after_success:
+  - $HOME/gopath/bin/goveralls -coverprofile coverage-all.out -service=travis-ci
+  #- ./push_to_docker.sh
+  #- curl -H POST $TEST_FARM_URL
