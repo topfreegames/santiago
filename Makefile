@@ -56,14 +56,15 @@ test-coverage-html: test-coverage
 
 test-services: test-nsq
 
-test-services-log: test-nsq-log
+test-services-log:
+#test-services-log: test-nsq-log
 
 test-services-shutdown: test-nsq-shutdown
 
 test-nsq: test-nsq-shutdown
 	@rm -rf /tmp/santiago-nsq-test.log
 	@mkdir -p /tmp/nsqd-test/1
-	@forego start -f ./scripts/TestNSQProcfile 2>&1 > /tmp/santiago-nsq.log &
+	@forego start -f ./scripts/TestNSQProcfile 2>&1 > /tmp/santiago-nsq-test.log &
 
 test-nsq-shutdown:
 	@-ps aux | egrep forego | egrep -v egrep | awk ' { print $$2 } ' | xargs kill -hup

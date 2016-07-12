@@ -66,6 +66,11 @@ func (a *App) initialize() error {
 		return err
 	}
 
+	err = a.connectToNSQ()
+	if err != nil {
+		return err
+	}
+
 	a.initializeWebApp()
 
 	l.Info(
@@ -118,6 +123,10 @@ func (a *App) loadConfiguration() error {
 		"Configuration loaded successfully.",
 		zap.String("configPath", a.Config.ConfigFileUsed()),
 	)
+	return nil
+}
+
+func (a *App) connectToNSQ() error {
 	return nil
 }
 

@@ -16,20 +16,10 @@ import (
 	"time"
 
 	"github.com/nsqio/go-nsq"
+	"github.com/topfreegames/santiago/extensions"
 	"github.com/uber-go/zap"
 	"github.com/valyala/fasthttp"
 )
-
-//NSQLogger is a bridge to NSQ from Zap
-type NSQLogger struct {
-	logger zap.Logger
-}
-
-//Output logs as Warnings
-func (l *NSQLogger) Output(calldepth int, s string) error {
-	l.logger.Warn(s)
-	return nil
-}
 
 //Worker is a worker implementation that keeps processing webhooks
 type Worker struct {
@@ -140,7 +130,7 @@ func (w *Worker) Subscribe() error {
 		log.Panic("Could not create consumer...")
 		return err
 	}
-	q.SetLogger(&NSQLogger{logger: l}, nsq.LogLevelWarning)
+	q.SetLogger(&extensions.NSQLogger{Logger: l}, nsq.LogLevelWarning)
 
 	q.AddHandler(nsq.HandlerFunc(w.Handle))
 
