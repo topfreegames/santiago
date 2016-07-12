@@ -18,6 +18,8 @@ setup: setup-hooks
 
 build:
 	@go build $(PACKAGES)
+	@mkdir -p bin/
+	@go build -o ./bin/snt-worker ./worker/main.go 
 
 worker: services
 	@go run worker/main.go start
