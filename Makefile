@@ -56,8 +56,7 @@ test-coverage-html: test-coverage
 
 test-services: test-nsq
 
-test-services-log:
-#test-services-log: test-nsq-log
+test-services-log: test-nsq-log
 
 test-services-shutdown: test-nsq-shutdown
 
