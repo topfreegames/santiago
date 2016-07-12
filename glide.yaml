@@ -10,3 +10,4 @@ import:
 - package: github.com/uber-go/zap
 - package: github.com/satori/go.uuid
 - package: github.com/Joker/jade
+- package: gopkg.in/gavv/httpexpect.v1

@@ -130,4 +130,6 @@ func (a *App) initializeWebApp() {
 		a.WebApp.Use(logger.New(iris.Logger))
 	}
 	a.WebApp.Use(recovery.New(os.Stderr))
+
+	a.WebApp.Get("/healthcheck", HealthCheckHandler(a))
 }
