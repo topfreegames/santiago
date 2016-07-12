@@ -44,7 +44,8 @@ var _ = Describe("Add Hook Handler", func() {
 		time.Sleep(50 * time.Millisecond)
 
 		res := api.PostJSON(app, "/hooks", map[string]interface{}{
-			"HookURL": "http://test.com",
+			"HookMethod": "POST",
+			"HookURL":    "http://test.com",
 			"HookPayload": map[string]interface{}{
 				"test": "qwe",
 			},

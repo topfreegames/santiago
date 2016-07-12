@@ -22,15 +22,20 @@ build:
 	@mkdir -p bin/
 	@go build -o ./bin/snt-worker ./worker/main.go 
 
-worker: services
-	@go run worker/main.go start
+work:
+	@go run worker/main.go start -p 6667 -i 15 -d -m 3
 
-run: services
-	@go run 
+work-prod:
+	@go run worker/main.go start -p 6667
+
+run:
+	@go run main.go start -c ./config/local.yaml
 
 services: nsq
 
 services-shutdown: nsq-shutdown
+
+services-clear: nsq-clear
 
 nsq: nsq-shutdown
 	@rm -rf /tmp/santiago-nsq.log
@@ -41,6 +46,9 @@ nsq: nsq-shutdown
 
 nsq-shutdown:
 	@-ps aux | egrep forego | egrep -v grep | awk ' { print $$2 } ' | xargs kill -2
+
+nsq-clear:
+	@rm -rf /tmp/nsqd
 
 test: test-services
 	@ginkgo --cover $(DIRS); \
@@ -64,7 +72,7 @@ test-services-log: test-nsq-log
 
 test-services-shutdown: test-nsq-shutdown
 
-test-nsq: test-nsq-shutdown
+test-nsq: test-nsq-shutdown test-nsq-clear
 	@rm -rf /tmp/santiago-nsq-test.log
 	@mkdir -p /tmp/nsqd-test/1
 	@forego start -f ./scripts/TestNSQProcfile 2>&1 > /tmp/santiago-nsq-test.log &
@@ -72,7 +80,13 @@ test-nsq: test-nsq-shutdown
 test-nsq-shutdown:
 	@-ps aux | egrep forego | egrep -v egrep | awk ' { print $$2 } ' | xargs kill -hup
 
+test-nsq-clear:
+	@rm -rf /tmp/nsqd-test
+
 test-nsq-log:
 	@echo "-------------------------------"
 	@echo "NSQ Log:"
 	@cat /tmp/santiago-nsq-test.log
+
+docker-build:
+	@docker build -t santiago .

@@ -13,6 +13,7 @@ import (
 )
 
 type addHookPayload struct {
+	HookMethod  string
 	HookURL     string
 	HookPayload map[string]interface{}
 }
@@ -29,7 +30,7 @@ func AddHookHandler(app *App) func(c *iris.Context) {
 			FailWith(400, fmt.Errorf("Invalid request: URL can't be empty.").Error(), c)
 			return
 		}
-		app.PublishHook(payload.HookURL, payload.HookPayload)
+		app.PublishHook(payload.HookMethod, payload.HookURL, payload.HookPayload)
 		c.Write("OK")
 	}
 }

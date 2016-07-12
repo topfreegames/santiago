@@ -9,7 +9,6 @@ package worker
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,6 +22,7 @@ import (
 
 //Worker is a worker implementation that keeps processing webhooks
 type Worker struct {
+	Debug               bool
 	Topic               string
 	Logger              zap.Logger
 	LookupHost          string
@@ -39,7 +39,7 @@ func NewDefault(lookupHost string, lookupPort int, logger zap.Logger) *Worker {
 		"webhook",
 		lookupHost, lookupPort, time.Duration(15)*time.Second,
 		10, 150, time.Duration(15)*time.Second,
-		logger,
+		logger, false,
 	)
 }
 
@@ -47,9 +47,10 @@ func NewDefault(lookupHost string, lookupPort int, logger zap.Logger) *Worker {
 func New(
 	topic string, lookupHost string, lookupPort int, lookupPollInterval time.Duration,
 	maxAttempts int, maxMessagesInFlight int, defaultRequeueDelay time.Duration,
-	logger zap.Logger,
+	logger zap.Logger, debug bool,
 ) *Worker {
 	return &Worker{
+		Debug:               debug,
 		Logger:              logger,
 		Topic:               topic,
 		LookupHost:          lookupHost,
@@ -63,83 +64,160 @@ func New(
 
 //DoRequest to some webhook endpoint
 func (w *Worker) DoRequest(method, url, payload string) (int, string, error) {
+	l := w.Logger.With(
+		zap.String("operation", "DoRequest"),
+		zap.String("method", method),
+		zap.String("url", url),
+		zap.String("payload", payload),
+	)
+
 	client := fasthttp.Client{
 		Name: "santiago",
 	}
 
+	start := time.Now()
 	req := fasthttp.AcquireRequest()
 	req.Header.SetMethod(method)
 	req.SetRequestURI(url)
-	req.AppendBody([]byte(payload))
+	if method != "GET" && payload != "" && payload != "NULL" {
+		req.AppendBody([]byte(payload))
+	}
 	resp := fasthttp.AcquireResponse()
 
 	timeout := time.Duration(5) * time.Second
 
 	err := client.DoTimeout(req, resp, timeout)
 	if err != nil {
-		fmt.Printf("Could not request webhook %s: %s\n", url, err.Error())
 		return 0, "", err
 	}
 
-	return resp.StatusCode(), string(resp.Body()), nil
+	status := resp.StatusCode()
+	body := string(resp.Body())
+	l.Info(
+		"Request hook finished without error.",
+		zap.Int("statusCode", status),
+		zap.String("body", body),
+		zap.Duration("requestDuration", time.Now().Sub(start)),
+	)
+
+	return status, body, nil
+}
+
+func (w *Worker) requeueMessage(method, url string, msg *nsq.Message) {
+	l := w.Logger.With(
+		zap.String("operation", "requeueMessage"),
+		zap.String("method", method),
+		zap.String("url", url),
+	)
+
+	if int(msg.Attempts) > w.MaxAttempts {
+		l.Warn("Max attempts reached for message. Message will be discarded.")
+		return
+	}
+
+	l.Debug("Requeueing message.", zap.Int("attempt", int(msg.Attempts)))
+	msg.RequeueWithoutBackoff(time.Duration(-1))
 }
 
 //Handle a single message from NSQ
 func (w *Worker) Handle(msg *nsq.Message) error {
+	l := w.Logger.With(
+		zap.String("operation", "Handle"),
+		zap.String("message", string(msg.Body)),
+	)
+
+	l.Debug("Unmarshaling message body...")
 	var result map[string]interface{}
 	err := json.Unmarshal(msg.Body, &result)
 	if err != nil {
-		fmt.Println("Could not process body", err)
+		l.Error("Message body could not be processed.", zap.Error(err))
 		return err
 	}
+	l.Debug("Message body unmarshaled successfully.")
 
+	l.Debug("Unmarshaling payload...")
 	payloadJSON, err := json.Marshal(result["payload"])
 	if err != nil {
+		l.Error("Message payload could not be processed.", zap.Object("payload", result["payload"]), zap.Error(err))
 		fmt.Println("Could not process payload", err)
-		return err
+		return nil
 	}
+	l.Debug("Payload unmarshaled successfully.")
 
-	status, _, err := w.DoRequest(result["method"].(string), result["url"].(string), string(payloadJSON))
+	method := result["method"].(string)
+	url := result["url"].(string)
+	l.Debug(
+		"Performing request...",
+		zap.String("method", method),
+		zap.String("url", url),
+		zap.String("payload", string(payloadJSON)),
+	)
+	status, _, err := w.DoRequest(method, url, string(payloadJSON))
 	if err != nil {
-		msg.Requeue(time.Duration(-1))
+		l.Error("Could not process hook, trying again later.", zap.Error(err), zap.Int("attempts", int(msg.Attempts)))
+		w.requeueMessage(method, url, msg)
 		return err
 	}
 	if status > 399 {
-		fmt.Println("Error requesting webhook", status)
-		msg.Requeue(time.Duration(-1))
-		return fmt.Errorf("Error requesting webhook. Status code: %d", status)
+		err := fmt.Errorf("Error requesting webhook. Status code: %d", status)
+		l.Error(
+			"Could not process hook, trying again later.",
+			zap.Int("statusCode", status),
+			zap.Error(err),
+			zap.Int("attempts", int(msg.Attempts)),
+		)
+		w.requeueMessage(method, url, msg)
+		return err
 	}
 
+	l.Info("Webhook processed successfully.")
 	return nil
 }
 
 //Subscribe to messages from NSQ
 func (w *Worker) Subscribe() error {
+	nsqLookupPath := fmt.Sprintf("%s:%d", w.LookupHost, w.LookupPort)
+
 	l := w.Logger.With(
 		zap.String("operation", "Subscribe"),
+		zap.String("nsqLookup", nsqLookupPath),
+		zap.String("topic", w.Topic),
+		zap.String("channel", "main"),
+		zap.Duration("lookupPollInterval", w.LookupPollInterval),
+		zap.Int("maxAttempts", w.MaxAttempts),
+		zap.Int("maxInFlight", w.MaxMessagesInFlight),
+		zap.Duration("defaultRequeueDelay", w.DefaultRequeueDelay),
 	)
-	nsqLookupPath := fmt.Sprintf("%s:%d", w.LookupHost, w.LookupPort)
+
 	config := nsq.NewConfig()
 	config.LookupdPollInterval = w.LookupPollInterval
 	config.MaxAttempts = uint16(w.MaxAttempts)
 	config.MaxInFlight = w.MaxMessagesInFlight
 	config.DefaultRequeueDelay = w.DefaultRequeueDelay
 
+	l.Debug("Starting consumer...")
 	q, err := nsq.NewConsumer(w.Topic, "main", config)
 	if err != nil {
-		log.Panic("Could not create consumer...")
+		l.Error("Consumer failed to start.", zap.Error(err))
 		return err
 	}
-	q.SetLogger(&extensions.NSQLogger{Logger: l}, nsq.LogLevelWarning)
+
+	logLevel := nsq.LogLevelWarning
+	//if w.Debug {
+	//logLevel = nsq.LogLevelDebug
+	//}
+
+	q.SetLogger(&extensions.NSQLogger{Logger: l}, logLevel)
 
 	q.AddHandler(nsq.HandlerFunc(w.Handle))
 
 	err = q.ConnectToNSQLookupd(nsqLookupPath)
 	if err != nil {
-		log.Panic("Could not connect.")
+		l.Error("Consumer failed to connect to NSQLookupD.", zap.Error(err))
 		return err
 	}
 
+	l.Info("Consumer started successfully.")
 	return nil
 }
 

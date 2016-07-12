@@ -18,6 +18,7 @@ import (
 	"github.com/iris-contrib/middleware/recovery"
 	"github.com/kataras/fasthttp"
 	"github.com/kataras/iris"
+	"github.com/kataras/iris/config"
 	"github.com/spf13/viper"
 	"github.com/uber-go/zap"
 )
@@ -128,6 +129,13 @@ func (a *App) loadConfiguration() error {
 
 //DoRequest to some webhook endpoint
 func (a *App) DoRequest(method, url, payload string) (int, string, error) {
+	l := a.Logger.With(
+		zap.String("operation", "DoRequest"),
+		zap.String("method", method),
+		zap.String("url", url),
+		zap.String("payload", payload),
+	)
+
 	client := fasthttp.Client{
 		Name: "santiago",
 	}
@@ -140,34 +148,52 @@ func (a *App) DoRequest(method, url, payload string) (int, string, error) {
 
 	timeout := time.Duration(5) * time.Second
 
+	start := time.Now()
+	l.Debug("Performing HTTP Request...")
 	err := client.DoTimeout(req, resp, timeout)
 	if err != nil {
-		fmt.Printf("Could not request webhook %s: %s\n", url, err.Error())
+		l.Error("Request to webhook failed.", zap.Error(err))
 		return 0, "", err
 	}
 
+	l.Info("HTTP Request successful", zap.Duration("RequestDuration", time.Now().Sub(start)))
 	return resp.StatusCode(), string(resp.Body()), nil
 }
 
 //PublishHook sends a hook to NSQ
-func (a *App) PublishHook(url string, payload map[string]interface{}) error {
+func (a *App) PublishHook(method, url string, payload map[string]interface{}) error {
 	host := a.Config.GetString("services.NSQ.host")
 	port := a.Config.GetInt("services.NSQ.port")
 	nsqURL := fmt.Sprintf("http://%s:%d/put?topic=%s", host, port, a.Queue)
 
+	l := a.Logger.With(
+		zap.String("operation", "PublishHook"),
+		zap.String("url", url),
+		zap.Object("payload", payload),
+		zap.Object("nsqURL", nsqURL),
+	)
+
 	data := map[string]interface{}{
+		"method":  method,
 		"url":     url,
 		"payload": payload,
 	}
 	dataJSON, _ := json.Marshal(data)
 
+	start := time.Now()
+	l.Debug("Publishing hook...")
 	status, _, err := a.DoRequest("POST", nsqURL, string(dataJSON))
 	if err != nil {
+		l.Error("Publishing hook failed.", zap.Error(err))
 		return err
 	}
 	if status > 399 {
-		return fmt.Errorf("Could not add hook to queue at %s (status: %d)", nsqURL, status)
+		err := fmt.Errorf("Could not add hook to queue at %s (status: %d)", nsqURL, status)
+		l.Error("Publishing hook failed.", zap.Error(err))
+		return err
 	}
+
+	l.Info("Hook published successfully.", zap.Duration("PublishDuration", time.Now().Sub(start)))
 
 	return nil
 }
@@ -175,7 +201,16 @@ func (a *App) PublishHook(url string, payload map[string]interface{}) error {
 func (a *App) initializeWebApp() {
 	debug := a.ServerOptions.Debug
 
-	a.WebApp = iris.New()
+	l := a.Logger.With(
+		zap.String("operation", "loadConfiguration"),
+		zap.Bool("debug", debug),
+	)
+
+	c := config.Iris{
+		DisableBanner: !debug,
+	}
+
+	a.WebApp = iris.New(c)
 
 	if debug {
 		a.WebApp.Use(logger.New(iris.Logger))
@@ -184,4 +219,17 @@ func (a *App) initializeWebApp() {
 
 	a.WebApp.Get("/healthcheck", HealthCheckHandler(a))
 	a.WebApp.Post("/hooks", AddHookHandler(a))
+
+	l.Info("Web App configured successfully")
+}
+
+//Start the application
+func (a *App) Start() {
+	l := a.Logger.With(
+		zap.String("operation", "Start"),
+	)
+
+	bind := fmt.Sprintf("%s:%d", a.ServerOptions.Host, a.ServerOptions.Port)
+	l.Info("Listening for requests.", zap.String("bind", bind))
+	a.WebApp.Listen(bind)
 }

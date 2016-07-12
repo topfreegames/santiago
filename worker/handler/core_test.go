@@ -113,7 +113,7 @@ var _ = Describe("Santiago Worker", func() {
 				queue,
 				"127.0.0.1", 7778, time.Duration(15)*time.Millisecond,
 				10, 150, time.Duration(15)*time.Millisecond,
-				logger,
+				logger, true,
 			)
 
 			err := worker.Subscribe()
@@ -145,7 +145,7 @@ var _ = Describe("Santiago Worker", func() {
 				queue,
 				"127.0.0.1", 7778, time.Duration(15)*time.Millisecond,
 				10, 150, time.Duration(15)*time.Millisecond,
-				logger,
+				logger, true,
 			)
 
 			err := worker.Subscribe()

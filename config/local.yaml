@@ -1,0 +1,7 @@
+api:
+  workingText: WORKING
+
+services:
+  NSQ:
+    host: localhost
+    port: 6669

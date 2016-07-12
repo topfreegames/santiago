@@ -1,5 +1,5 @@
 lookup: nsqlookupd --broadcast-address=localhost --tcp-address=127.0.0.1:6666 --http-address=127.0.0.1:6667
 nsqd: nsqd --broadcast-address=localhost --lookupd-tcp-address=127.0.0.1:6666 -data-path /tmp/nsqd/1 --tcp-address=127.0.0.1:6668 --http-address=127.0.0.1:6669 --mem-queue-size=0 --worker-id=1
-nsqd2: nsqd --broadcast-address=localhost --lookupd-tcp-address=127.0.0.1:6666 -data-path /tmp/nsqd/2 --tcp-address=127.0.0.1:6670 --http-address=127.0.0.1:6671 --mem-queue-size=0 --worker-id=2
-nsqd3: nsqd --broadcast-address=localhost --lookupd-tcp-address=127.0.0.1:6666 -data-path /tmp/nsqd/3 --tcp-address=127.0.0.1:6672 --http-address=127.0.0.1:6673 --mem-queue-size=0 --worker-id=3
-admin: nsqadmin --lookupd-http-address=127.0.0.1:7778 --http-address=127.0.0.1:7000
+#nsqd2: nsqd --broadcast-address=localhost --lookupd-tcp-address=127.0.0.1:6666 -data-path /tmp/nsqd/2 --tcp-address=127.0.0.1:6670 --http-address=127.0.0.1:6671 --mem-queue-size=0 --worker-id=2
+#nsqd3: nsqd --broadcast-address=localhost --lookupd-tcp-address=127.0.0.1:6666 -data-path /tmp/nsqd/3 --tcp-address=127.0.0.1:6672 --http-address=127.0.0.1:6673 --mem-queue-size=0 --worker-id=3
+admin: nsqadmin --lookupd-http-address=127.0.0.1:6667 --http-address=127.0.0.1:7000
