@@ -30,16 +30,19 @@ services-shutdown: nsq-shutdown
 
 nsq: nsq-shutdown
 	@rm -rf /tmp/santiago-nsq.log
-	@forego start -f ./scripts/TestNSQProcfile 2>&1 > /tmp/santiago-nsq.log &
+	@mkdir -p /tmp/nsqd/1
+	@mkdir -p /tmp/nsqd/2
+	@mkdir -p /tmp/nsqd/3
+	@forego start -f ./scripts/NSQProcfile 2>&1 > /tmp/santiago-nsq.log &
 
 nsq-shutdown:
-	@-ps aux | egrep forego | egrep -v egrep | awk ' { print $$2 } ' | xargs kill -hup
+	@-ps aux | egrep forego | egrep -v grep | awk ' { print $$2 } ' | xargs kill -2
 
 test: test-services
 	@ginkgo --cover $(DIRS); \
     case "$$?" in \
-    "0") $(MAKE) services-shutdown; exit 0;; \
-	*) $(MAKE) services-shutdown; exit 1;; \
+	"0") $(MAKE) test-services-shutdown; exit 0;; \
+	*) $(MAKE) test-services-shutdown; $(MAKE) test-services-log; exit 1;; \
     esac;
 
 test-coverage: test
@@ -53,12 +56,19 @@ test-coverage-html: test-coverage
 
 test-services: test-nsq
 
+test-services-log: test-nsq-log
+
 test-services-shutdown: test-nsq-shutdown
 
 test-nsq: test-nsq-shutdown
-	@rm -rf /tmp/santiago-nsq.log
-	@mkdir -p /tmp/nsqd/1
+	@rm -rf /tmp/santiago-nsq-test.log
+	@mkdir -p /tmp/nsqd-test/1
 	@forego start -f ./scripts/TestNSQProcfile 2>&1 > /tmp/santiago-nsq.log &
 
 test-nsq-shutdown:
 	@-ps aux | egrep forego | egrep -v egrep | awk ' { print $$2 } ' | xargs kill -hup
+
+test-nsq-log:
+	@echo "-------------------------------"
+	@echo "NSQ Log:"
+	@cat /tmp/santiago-nsq-test.log
