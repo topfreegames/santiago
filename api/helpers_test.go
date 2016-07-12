@@ -16,7 +16,7 @@ import (
 	"github.com/uber-go/zap"
 )
 
-// GetDefaultTestApp returns a new Khan API Application bound to 0.0.0.0:8888 for test
+// GetDefaultTestApp returns a new Santiago API Application bound to 0.0.0.0:8888 for test
 func GetDefaultTestApp(logger zap.Logger) (*App, error) {
 	options := DefaultOptions()
 	return New(options, logger)

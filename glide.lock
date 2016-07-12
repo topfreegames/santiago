@@ -196,11 +196,6 @@ imports:
   subpackages:
   - assert
   - require
-- name: github.com/topfreegames/khan
-  version: 03a3083cf28437b37e7a1f498447cf8860eb3727
-  subpackages:
-  - models
-  - util
 - name: github.com/uber-go/atomic
   version: e682c1008ac17bf26d2e4b5ad6cdd08520ed0b22
 - name: github.com/uber-go/zap

@@ -107,7 +107,7 @@ func (w *Worker) Handle(msg *nsq.Message) error {
 	if status > 399 {
 		fmt.Println("Error requesting webhook", status)
 		msg.Requeue(time.Duration(-1))
-		return fmt.Errorf("Error requesting webhook. Status code: %s", status)
+		return fmt.Errorf("Error requesting webhook. Status code: %d", status)
 	}
 
 	return nil
