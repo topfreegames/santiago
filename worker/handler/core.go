@@ -110,9 +110,14 @@ func (w *Worker) Handle(msg *nsq.Message) error {
 	}
 
 	status, _, err := w.DoRequest(result["method"].(string), result["url"].(string), string(payloadJSON))
+	if err != nil {
+		msg.Requeue(time.Duration(-1))
+		return err
+	}
 	if status > 399 {
 		fmt.Println("Error requesting webhook", status)
-		return err
+		msg.Requeue(time.Duration(-1))
+		return fmt.Errorf("Error requesting webhook. Status code: %s", status)
 	}
 
 	return nil
