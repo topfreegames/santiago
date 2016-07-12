@@ -10,6 +10,7 @@ services:
 
 install:
   - go get github.com/nsqio/nsq/...
+  - go get github.com/mattn/goveralls
   - make setup
 
 script:
