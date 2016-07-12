@@ -24,6 +24,9 @@ build:
 worker: services
 	@go run worker/main.go start
 
+run: services
+	@go run 
+
 services: nsq
 
 services-shutdown: nsq-shutdown
@@ -42,7 +45,7 @@ test: test-services
 	@ginkgo --cover $(DIRS); \
     case "$$?" in \
 	"0") $(MAKE) test-services-shutdown; exit 0;; \
-	*) $(MAKE) test-services-shutdown; $(MAKE) test-services-log; exit 1;; \
+	*) $(MAKE) test-services-shutdown; exit 1;; \
     esac;
 
 test-coverage: test

@@ -7,12 +7,56 @@
 package api_test
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/nsqio/go-nsq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/satori/go.uuid"
 	"github.com/topfreegames/santiago/api"
+	"github.com/topfreegames/santiago/extensions"
 	. "github.com/topfreegames/santiago/testing"
 	"github.com/uber-go/zap"
 )
+
+func startListeningNSQ(host string, port int, queue string, logger zap.Logger) (map[string]interface{}, error) {
+	responses := map[string]interface{}{
+		"errors": []error{},
+	}
+
+	nsqLookupPath := fmt.Sprintf("%s:%d", host, port)
+	config := nsq.NewConfig()
+	config.LookupdPollInterval = 10 * time.Millisecond
+
+	q, err := nsq.NewConsumer(queue, "main", config)
+	if err != nil {
+		log.Panic("Could not create consumer...")
+		return nil, err
+	}
+	q.SetLogger(&extensions.NSQLogger{Logger: logger}, nsq.LogLevelWarning)
+
+	q.AddHandler(nsq.HandlerFunc(func(msg *nsq.Message) error {
+		var obj map[string]interface{}
+		err := json.Unmarshal(msg.Body, &obj)
+		if err != nil {
+			responses["errors"] = append(responses["errors"].([]error), err)
+			return err
+		}
+
+		responses[obj["url"].(string)] = obj["payload"]
+		return nil
+	}))
+
+	err = q.ConnectToNSQLookupd(nsqLookupPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return responses, nil
+}
 
 var _ = Describe("App", func() {
 	var logger *MockLogger
@@ -76,7 +120,34 @@ var _ = Describe("App", func() {
 			})
 		})
 
-		Describe("App Initialization", func() {
+		Describe("App Submit Hook to NSQ", func() {
+			It("Should receive hook", func() {
+				options := api.DefaultOptions()
+				options.ConfigFile = "../config/default.yaml"
+
+				app, err := api.New(options, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(app.Config).NotTo(BeNil())
+
+				queueID := uuid.NewV4().String()
+				app.Queue = queueID
+
+				responses, err := startListeningNSQ(
+					"127.0.0.1",
+					7778,
+					queueID,
+					logger,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				time.Sleep(50 * time.Millisecond)
+
+				err = app.PublishHook("http://test.url.com", "{\"x\": 1}")
+				Expect(err).NotTo(HaveOccurred())
+
+				time.Sleep(50 * time.Millisecond)
+
+				Expect(responses["http://test.url.com"]).NotTo(BeNil())
+			})
 		})
 	})
 })

@@ -7,6 +7,8 @@
 package api
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/iris-contrib/middleware/logger"
 	"github.com/iris-contrib/middleware/recovery"
+	"github.com/kataras/fasthttp"
 	"github.com/kataras/iris"
 	"github.com/spf13/viper"
 	"github.com/uber-go/zap"
@@ -25,6 +28,7 @@ type App struct {
 	Logger        zap.Logger
 	ServerOptions *Options
 	WebApp        *iris.Framework
+	Queue         string
 }
 
 //New opens a new channel connection
@@ -43,6 +47,7 @@ func New(options *Options, logger zap.Logger) (*App, error) {
 		ServerOptions: options,
 		Config:        viper.New(),
 	}
+	a.Queue = "webhooks"
 
 	err := a.initialize()
 	if err != nil {
@@ -62,11 +67,6 @@ func (a *App) initialize() error {
 	a.setDefaultConfigurationOptions()
 
 	err := a.loadConfiguration()
-	if err != nil {
-		return err
-	}
-
-	err = a.connectToNSQ()
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,49 @@ func (a *App) loadConfiguration() error {
 	return nil
 }
 
-func (a *App) connectToNSQ() error {
+//DoRequest to some webhook endpoint
+func (a *App) DoRequest(method, url, payload string) (int, string, error) {
+	client := fasthttp.Client{
+		Name: "santiago",
+	}
+
+	req := fasthttp.AcquireRequest()
+	req.Header.SetMethod(method)
+	req.SetRequestURI(url)
+	req.AppendBody([]byte(payload))
+	resp := fasthttp.AcquireResponse()
+
+	timeout := time.Duration(5) * time.Second
+
+	err := client.DoTimeout(req, resp, timeout)
+	if err != nil {
+		fmt.Printf("Could not request webhook %s: %s\n", url, err.Error())
+		return 0, "", err
+	}
+
+	return resp.StatusCode(), string(resp.Body()), nil
+}
+
+//PublishHook sends a hook to NSQ
+func (a *App) PublishHook(url, payload string) error {
+	host := a.Config.GetString("services.NSQ.host")
+	port := a.Config.GetInt("services.NSQ.port")
+	nsqURL := fmt.Sprintf("http://%s:%d/put?topic=%s", host, port, a.Queue)
+
+	data := map[string]interface{}{
+		"url":     url,
+		"payload": payload,
+	}
+	dataJSON, _ := json.Marshal(data)
+
+	status, _, err := a.DoRequest("POST", nsqURL, string(dataJSON))
+	if err != nil {
+		return err
+	}
+	if status > 399 {
+		return fmt.Errorf("Could not add hook to queue at %s (status: %d)", nsqURL, status)
+	}
+
 	return nil
 }
 
