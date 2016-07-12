@@ -15,6 +15,7 @@ import (
 
 	"github.com/nsqio/go-nsq"
 	"github.com/satori/go.uuid"
+	"github.com/topfreegames/santiago/testing"
 	. "github.com/topfreegames/santiago/worker/handler"
 
 	. "github.com/onsi/ginkgo"
@@ -54,10 +55,14 @@ func startRouteHandler(routes []string, port int) *[]map[string]interface{} {
 }
 
 var _ = Describe("Santiago Worker", func() {
+	var logger *testing.MockLogger
+	BeforeEach(func() {
+		logger = testing.NewMockLogger()
+	})
 
 	Describe("Worker instance", func() {
 		It("should create a new instance", func() {
-			worker := NewDefault("127.0.0.1", 7778)
+			worker := NewDefault("127.0.0.1", 7778, logger)
 			Expect(worker).NotTo(BeNil())
 			Expect(worker.LookupHost).To(Equal("127.0.0.1"))
 			Expect(worker.LookupPort).To(Equal(7778))
@@ -74,7 +79,7 @@ var _ = Describe("Santiago Worker", func() {
 				"payload": map[string]interface{}{"qwe": 123},
 			}
 			payloadJSON, _ := json.Marshal(payload)
-			worker := NewDefault("127.0.0.1", 7778)
+			worker := NewDefault("127.0.0.1", 7778, logger)
 			msg := &nsq.Message{
 				Body:        payloadJSON,
 				Timestamp:   time.Now().UnixNano(),
@@ -108,6 +113,7 @@ var _ = Describe("Santiago Worker", func() {
 				queue,
 				"127.0.0.1", 7778, time.Duration(15)*time.Millisecond,
 				10, 150, time.Duration(15)*time.Millisecond,
+				logger,
 			)
 
 			err := worker.Subscribe()

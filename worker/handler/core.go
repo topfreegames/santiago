@@ -20,6 +20,15 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+type NSQLogger struct {
+	logger zap.Logger
+}
+
+func (l *NSQLogger) Output(calldepth int, s string) error {
+	l.logger.Warn(s)
+	return nil
+}
+
 //Worker is a worker implementation that keeps processing webhooks
 type Worker struct {
 	Topic               string
@@ -33,11 +42,12 @@ type Worker struct {
 }
 
 //NewDefault returns a new worker with default options
-func NewDefault(lookupHost string, lookupPort int) *Worker {
+func NewDefault(lookupHost string, lookupPort int, logger zap.Logger) *Worker {
 	return New(
 		"webhook",
 		lookupHost, lookupPort, time.Duration(15)*time.Second,
 		10, 150, time.Duration(15)*time.Second,
+		logger,
 	)
 }
 
@@ -45,8 +55,10 @@ func NewDefault(lookupHost string, lookupPort int) *Worker {
 func New(
 	topic string, lookupHost string, lookupPort int, lookupPollInterval time.Duration,
 	maxAttempts int, maxMessagesInFlight int, defaultRequeueDelay time.Duration,
+	logger zap.Logger,
 ) *Worker {
 	return &Worker{
+		Logger:              logger,
 		Topic:               topic,
 		LookupHost:          lookupHost,
 		LookupPort:          lookupPort,
@@ -82,7 +94,6 @@ func (w *Worker) DoRequest(method, url, payload string) (int, string, error) {
 //Handle a single message from NSQ
 func (w *Worker) Handle(msg *nsq.Message) error {
 	var result map[string]interface{}
-	fmt.Println("RECEIVED MESSAGE", string(msg.Body))
 	err := json.Unmarshal(msg.Body, &result)
 	if err != nil {
 		fmt.Println("Could not process body", err)
@@ -106,6 +117,9 @@ func (w *Worker) Handle(msg *nsq.Message) error {
 
 //Subscribe to messages from NSQ
 func (w *Worker) Subscribe() error {
+	l := w.Logger.With(
+		zap.String("operation", "Subscribe"),
+	)
 	nsqLookupPath := fmt.Sprintf("%s:%d", w.LookupHost, w.LookupPort)
 	config := nsq.NewConfig()
 	config.LookupdPollInterval = w.LookupPollInterval
@@ -118,6 +132,7 @@ func (w *Worker) Subscribe() error {
 		log.Panic("Could not create consumer...")
 		return err
 	}
+	q.SetLogger(&NSQLogger{logger: l}, nsq.LogLevelWarning)
 
 	q.AddHandler(nsq.HandlerFunc(w.Handle))
 

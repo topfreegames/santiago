@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/topfreegames/santiago/worker/handler"
+	"github.com/uber-go/zap"
 )
 
 var nsqHost string
@@ -26,13 +27,16 @@ var startCmd = &cobra.Command{
 	Short: "starts a worker",
 	Long:  `starts a new worker listening for webhooks`,
 	Run: func(cmd *cobra.Command, args []string) {
+		logger := zap.NewJSON()
 		w := worker.New(
+			"webhook",
 			nsqHost,
 			nsqPort,
 			time.Duration(nsqLookupPollInterval)*time.Second,
 			nsqMaxAttempts,
 			nsqMaxInFlight,
 			time.Duration(nsqDefaultRequeueDelay)*time.Second,
+			logger,
 		)
 
 		w.Start()
