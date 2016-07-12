@@ -141,7 +141,9 @@ var _ = Describe("App", func() {
 				Expect(err).NotTo(HaveOccurred())
 				time.Sleep(50 * time.Millisecond)
 
-				err = app.PublishHook("http://test.url.com", "{\"x\": 1}")
+				err = app.PublishHook("http://test.url.com", map[string]interface{}{
+					"x": 1,
+				})
 				Expect(err).NotTo(HaveOccurred())
 
 				time.Sleep(50 * time.Millisecond)

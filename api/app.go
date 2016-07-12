@@ -150,7 +150,7 @@ func (a *App) DoRequest(method, url, payload string) (int, string, error) {
 }
 
 //PublishHook sends a hook to NSQ
-func (a *App) PublishHook(url, payload string) error {
+func (a *App) PublishHook(url string, payload map[string]interface{}) error {
 	host := a.Config.GetString("services.NSQ.host")
 	port := a.Config.GetInt("services.NSQ.port")
 	nsqURL := fmt.Sprintf("http://%s:%d/put?topic=%s", host, port, a.Queue)
@@ -183,4 +183,5 @@ func (a *App) initializeWebApp() {
 	a.WebApp.Use(recovery.New(os.Stderr))
 
 	a.WebApp.Get("/healthcheck", HealthCheckHandler(a))
+	a.WebApp.Post("/hooks", AddHookHandler(a))
 }
