@@ -12,6 +12,7 @@ setup-hooks:
 
 setup: setup-hooks
 	@type nsqlookupd >/dev/null 2>&1 || { echo >&2 "Please ensure NSQ is installed before continuing.\nFor more information, refer to http://nsq.io/deployment/installing.html.\n\nSetup aborted!\n"; exit 1; }
+	@go get -u github.com/ddollar/forego
 	@go get -u github.com/onsi/ginkgo/ginkgo
 	@go get -u github.com/Masterminds/glide/...
 	@glide install
