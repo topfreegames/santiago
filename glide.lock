@@ -1,5 +1,5 @@
-hash: 896f38e67f513cc069b936db485f39877491d9f48b1076c5e2132357c723dc0a
-updated: 2016-07-11T19:25:18.31357888-03:00
+hash: c2474559b4b8498fcee2ac00b226624dc859ef9cec4666d4dab34d1aa76d4a5b
+updated: 2016-07-11T22:54:25.658724979-03:00
 imports:
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
@@ -23,6 +23,8 @@ imports:
   version: 462326b1628e124b23f42e87a8f2750e3c4e2d24
 - name: github.com/onsi/gomega
   version: a78ae492d53aad5a7a232d0d0462c14c400e3ee7
+- name: github.com/satori/go.uuid
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/spf13/cobra
   version: a272c3cbd5ff80a5bf5c5603df50183f9f3f7324
 - name: github.com/spf13/pflag
@@ -37,4 +39,4 @@ imports:
   version: 97d96cb3b7feaf22ce9b813313cd8ae20b3589b9
   subpackages:
   - fasthttputil
-testImports: []
+devImports: []

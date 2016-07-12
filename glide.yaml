@@ -8,3 +8,4 @@ import:
   version: ^1.0.6
 - package: github.com/valyala/fasthttp
 - package: github.com/uber-go/zap
+- package: github.com/satori/go.uuid
