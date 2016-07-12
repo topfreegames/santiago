@@ -20,10 +20,12 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+//NSQLogger is a bridge to NSQ from Zap
 type NSQLogger struct {
 	logger zap.Logger
 }
 
+//Output logs as Warnings
 func (l *NSQLogger) Output(calldepth int, s string) error {
 	l.logger.Warn(s)
 	return nil
@@ -69,6 +71,7 @@ func New(
 	}
 }
 
+//DoRequest to some webhook endpoint
 func (w *Worker) DoRequest(method, url, payload string) (int, string, error) {
 	client := fasthttp.Client{
 		Name: "santiago",
