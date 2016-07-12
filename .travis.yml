@@ -16,6 +16,6 @@ script:
   - make test-coverage
 
 after_success:
-  - $HOME/gopath/bin/goveralls -coverprofile coverage-all.out -service=travis-ci
+  - $HOME/gopath/bin/goveralls -coverprofile _build/test-coverage-all.out -service=travis-ci
   #- ./push_to_docker.sh
   #- curl -H POST $TEST_FARM_URL
