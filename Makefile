@@ -61,7 +61,10 @@ work-prod:
 	@go run worker/main.go start -p 6667
 
 run:
-	@go run main.go start -c ./config/local.yaml
+	@go run main.go start -p 3333 -d -c ./config/local.yaml
+
+run-prod:
+	@go run main.go start -p 3333 -c ./config/local.yaml
 
 services: nsq
 

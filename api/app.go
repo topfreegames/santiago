@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/iris-contrib/middleware/logger"
 	"github.com/iris-contrib/middleware/recovery"
 	"github.com/kataras/fasthttp"
 	"github.com/kataras/iris"
@@ -149,14 +148,14 @@ func (a *App) DoRequest(method, url, payload string) (int, string, error) {
 	timeout := time.Duration(5) * time.Second
 
 	start := time.Now()
-	l.Debug("Performing HTTP Request...")
+	l.Debug("Sending to NSQ...")
 	err := client.DoTimeout(req, resp, timeout)
 	if err != nil {
-		l.Error("Request to webhook failed.", zap.Error(err))
+		l.Error("Request to NSQ failed.", zap.Error(err))
 		return 0, "", err
 	}
 
-	l.Info("HTTP Request successful", zap.Duration("RequestDuration", time.Now().Sub(start)))
+	l.Info("Sending to NSQ succeeded.", zap.Duration("RequestDuration", time.Now().Sub(start)))
 	return resp.StatusCode(), string(resp.Body()), nil
 }
 
@@ -206,14 +205,12 @@ func (a *App) initializeWebApp() {
 	)
 
 	c := config.Iris{
-		DisableBanner: !debug,
+		DisableBanner: true,
 	}
 
 	a.WebApp = iris.New(c)
 
-	if debug {
-		a.WebApp.Use(logger.New(iris.Logger))
-	}
+	a.WebApp.Use(NewLoggerMiddleware(a.Logger))
 	a.WebApp.Use(recovery.New(os.Stderr))
 
 	a.WebApp.Get("/healthcheck", HealthCheckHandler(a))

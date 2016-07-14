@@ -15,9 +15,11 @@ import (
 // HealthCheckHandler is the handler responsible for validating that the app is still up
 func HealthCheckHandler(app *App) func(c *iris.Context) {
 	return func(c *iris.Context) {
+		app.Logger.Debug("Starting healthcheck...")
 		workingString := app.Config.GetString("api.workingText")
 		c.SetStatusCode(iris.StatusOK)
 		workingString = strings.TrimSpace(workingString)
 		c.Write(workingString)
+		app.Logger.Debug("Everything seems fine!")
 	}
 }
