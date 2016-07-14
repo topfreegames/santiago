@@ -20,6 +20,7 @@ setup-hooks:
 	@cd .git/hooks && ln -sf ../../hooks/pre-commit.sh pre-commit
 
 setup-nsq:
+	@mkdir -p _build
 	@if [ -f ./bin/nsqd ]; then \
 		echo "NSQd is already installed."; \
 	else \
