@@ -7,6 +7,7 @@
 package api_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -44,11 +45,10 @@ var _ = Describe("Add Hook Handler", func() {
 		time.Sleep(50 * time.Millisecond)
 
 		res := api.PostJSON(app, "/hooks", map[string]interface{}{
-			"HookMethod": "POST",
-			"HookURL":    "http://test.com",
-			"HookPayload": map[string]interface{}{
-				"test": "qwe",
-			},
+			"test": "qwe",
+		}, map[string]string{
+			"method": "POST",
+			"url":    "http://test.com",
 		})
 		Expect(res.Raw().StatusCode).To(Equal(http.StatusOK))
 		Expect(res.Body().Raw()).To(Equal("OK"))
@@ -56,7 +56,9 @@ var _ = Describe("Add Hook Handler", func() {
 		time.Sleep(50 * time.Millisecond)
 
 		Expect(responses["http://test.com"]).NotTo(BeNil())
-		payload := responses["http://test.com"].(map[string]interface{})
+
+		var payload map[string]interface{}
+		err = json.Unmarshal([]byte(responses["http://test.com"].(string)), &payload)
 		Expect(payload["test"].(string)).To(Equal("qwe"))
 	})
 })

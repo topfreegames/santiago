@@ -7,30 +7,31 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/kataras/iris"
+	"github.com/uber-go/zap"
 )
-
-type addHookPayload struct {
-	HookMethod  string
-	HookURL     string
-	HookPayload map[string]interface{}
-}
 
 // AddHookHandler sends new hooks
 func AddHookHandler(app *App) func(c *iris.Context) {
 	return func(c *iris.Context) {
-		var payload addHookPayload
-		if err := c.ReadJSON(&payload); err != nil {
-			FailWith(400, err.Error(), c)
+		method := c.URLParam("method")
+		url := c.URLParam("url")
+
+		l := app.Logger.With(
+			zap.String("source", "addHookHandler"),
+			zap.String("method", method),
+			zap.String("url", url),
+		)
+
+		if method == "" || url == "" {
+			l.Warn("Request validation failed.")
+			FailWith(400, "Both 'method' and 'url' must be provided as querystring parameters", c)
 			return
 		}
-		if payload.HookURL == "" {
-			FailWith(400, fmt.Errorf("Invalid request: URL can't be empty.").Error(), c)
-			return
-		}
-		app.PublishHook(payload.HookMethod, payload.HookURL, payload.HookPayload)
+
+		payload := string(c.Request.Body())
+		app.PublishHook(method, url, payload)
+		l.Debug("Hook published successfully.")
 		c.Write("OK")
 	}
 }

@@ -161,7 +161,7 @@ func (a *App) DoRequest(method, url, payload string) (int, string, error) {
 }
 
 //PublishHook sends a hook to NSQ
-func (a *App) PublishHook(method, url string, payload map[string]interface{}) error {
+func (a *App) PublishHook(method, url string, payload string) error {
 	host := a.Config.GetString("services.NSQ.host")
 	port := a.Config.GetInt("services.NSQ.port")
 	nsqURL := fmt.Sprintf("http://%s:%d/put?topic=%s", host, port, a.Queue)
@@ -192,7 +192,6 @@ func (a *App) PublishHook(method, url string, payload map[string]interface{}) er
 		l.Error("Publishing hook failed.", zap.Error(err))
 		return err
 	}
-
 	l.Info("Hook published successfully.", zap.Duration("PublishDuration", time.Now().Sub(start)))
 
 	return nil

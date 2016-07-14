@@ -33,35 +33,25 @@ func PostBody(app *App, url string, payload string) *httpexpect.Response {
 	return sendBody(app, "POST", url, payload)
 }
 
-// PutBody returns a test request against specified URL
-func PutBody(app *App, url string, payload string) *httpexpect.Response {
-	return sendBody(app, "PUT", url, payload)
-}
-
 func sendBody(app *App, method string, url string, payload string) *httpexpect.Response {
 	req := sendRequest(app, method, url)
 	return req.WithBytes([]byte(payload)).Expect()
 }
 
 // PostJSON returns a test request against specified URL
-func PostJSON(app *App, url string, payload map[string]interface{}) *httpexpect.Response {
-	return sendJSON(app, "POST", url, payload)
+func PostJSON(app *App, url string, payload map[string]interface{}, querystring ...map[string]string) *httpexpect.Response {
+	return sendJSON(app, "POST", url, payload, querystring...)
 }
 
-// PutJSON returns a test request against specified URL
-func PutJSON(app *App, url string, payload map[string]interface{}) *httpexpect.Response {
-	return sendJSON(app, "PUT", url, payload)
-}
-
-func sendJSON(app *App, method, url string, payload map[string]interface{}) *httpexpect.Response {
+func sendJSON(app *App, method, url string, payload map[string]interface{}, querystring ...map[string]string) *httpexpect.Response {
 	req := sendRequest(app, method, url)
+	if len(querystring) > 0 {
+		qs := querystring[0]
+		for q, v := range qs {
+			req.WithQuery(q, v)
+		}
+	}
 	return req.WithJSON(payload).Expect()
-}
-
-// Delete returns a test request against specified URL
-func Delete(app *App, url string) *httpexpect.Response {
-	req := sendRequest(app, "DELETE", url)
-	return req.Expect()
 }
 
 //GinkgoReporter implements tests for httpexpect

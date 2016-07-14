@@ -140,10 +140,12 @@ var _ = Describe("App", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 				time.Sleep(50 * time.Millisecond)
-
-				err = app.PublishHook("POST", "http://test.url.com", map[string]interface{}{
+				payload := map[string]interface{}{
 					"x": 1,
-				})
+				}
+				payloadJSON, _ := json.Marshal(payload)
+
+				err = app.PublishHook("POST", "http://test.url.com", string(payloadJSON))
 				Expect(err).NotTo(HaveOccurred())
 
 				time.Sleep(50 * time.Millisecond)
