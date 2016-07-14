@@ -26,3 +26,4 @@ vendor/
 *.coverprofile
 /_build
 /bin
+.venv

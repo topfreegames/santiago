@@ -28,6 +28,10 @@ setup-nsq:
 		cd _build && curl https://s3.amazonaws.com/bitly-downloads/nsq/nsq-0.3.8.$(OS)-amd64.go1.6.2.tar.gz | tar xz && cp nsq*/bin/* ../bin/ && rm -rf nsq* && echo "NSQd installed successfully."; \
 	fi
 
+setup-docs:
+	@mkdir -p /tmp/.pip/cache
+	@pip install -q --log /tmp/pip.log --cache-dir /tmp/.pip/cache --no-cache-dir sphinx recommonmark sphinx_rtd_theme
+
 build:
 	@go build $(PACKAGES)
 	@mkdir -p bin/
@@ -78,6 +82,14 @@ nsq-shutdown:
 nsq-clear:
 	@rm -rf /tmp/nsqd
 
+ci-test: test-services
+	@ginkgo --cover $(DIRS); \
+    case "$$?" in \
+	"0") $(MAKE) test-services-shutdown; exit 0;; \
+	*) $(MAKE) test-services-shutdown; cat /tmp/santiago-nsq-test.log; exit 1;; \
+    esac;
+
+
 test: test-services
 	@ginkgo --cover $(DIRS); \
     case "$$?" in \
@@ -106,7 +118,7 @@ test-nsq: test-nsq-shutdown test-nsq-clear
 	@forego start -f ./scripts/TestNSQProcfile 2>&1 > /tmp/santiago-nsq-test.log &
 
 test-nsq-shutdown:
-	@-ps aux | egrep forego | egrep -v egrep | awk ' { print $$2 } ' | xargs kill -hup
+	@-ps aux | egrep forego | egrep -v egrep | awk ' { print $$2 } ' | xargs kill -1
 
 test-nsq-clear:
 	@rm -rf /tmp/nsqd-test
@@ -127,3 +139,8 @@ docker-dev-build:
 
 docker-dev-run:
 	@docker run -i -t --rm -p 8080:8080 santiago-dev
+
+rtfd:
+	@rm -rf docs/_build
+	@sphinx-build -b html -d ./docs/_build/doctrees ./docs/ docs/_build/html
+	@open docs/_build/html/index.html
