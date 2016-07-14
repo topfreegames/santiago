@@ -101,7 +101,7 @@ test-services-shutdown: test-nsq-shutdown
 test-nsq: test-nsq-shutdown test-nsq-clear
 	@rm -rf /tmp/santiago-nsq-test.log
 	@mkdir -p /tmp/nsqd-test/1
-	@forego start -f ./scripts/TestNSQProcfile 2>&1 > /tmp/santiago-nsq-test.log &
+	@env MY_IP=$(MYIP) forego start -f ./scripts/TestNSQProcfile 2>&1 > /tmp/santiago-nsq-test.log &
 
 test-nsq-shutdown:
 	@-ps aux | egrep forego | egrep -v egrep | awk ' { print $$2 } ' | xargs kill -hup
