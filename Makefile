@@ -7,16 +7,24 @@
 PACKAGES = $(shell glide novendor)
 DIRS = $(shell find . -type f -not -path '*/\.*' | grep '.go' | grep -v "^[.]\/vendor" | xargs -n1 dirname | sort | uniq | grep -v '^.$$')
 MYIP = $(shell ifconfig | egrep inet | egrep -v inet6 | egrep -v 127.0.0.1 | awk ' { print $$2 } ')
+OS = "$(shell uname | awk '{ print tolower($$0) }')"
 
-setup-hooks:
-	@cd .git/hooks && ln -sf ../../hooks/pre-commit.sh pre-commit
-
-setup: setup-hooks
+setup: setup-hooks setup-nsq
 	@type nsqlookupd >/dev/null 2>&1 || { echo >&2 "Please ensure NSQ is installed before continuing.\nFor more information, refer to http://nsq.io/deployment/installing.html.\n\nSetup aborted!\n"; exit 1; }
 	@go get -u github.com/ddollar/forego
 	@go get -u github.com/onsi/ginkgo/ginkgo
 	@go get -u github.com/Masterminds/glide/...
 	@glide install
+
+setup-hooks:
+	@cd .git/hooks && ln -sf ../../hooks/pre-commit.sh pre-commit
+
+setup-nsq:
+	@if [ -f ./bin/nsqd ]; then \
+		echo "NSQd is already installed."; \
+	else \
+		cd _build && curl https://s3.amazonaws.com/bitly-downloads/nsq/nsq-0.3.8.$(OS)-amd64.go1.6.2.tar.gz | tar xz && cp nsq*/bin/* ../bin/ && rm -rf nsq* & echo "NSQd installed successfully."; \
+	fi
 
 build:
 	@go build $(PACKAGES)
