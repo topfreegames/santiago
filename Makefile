@@ -24,7 +24,7 @@ setup-nsq:
 	@if [ -f ./bin/nsqd ]; then \
 		echo "NSQd is already installed."; \
 	else \
-		cd _build && curl https://s3.amazonaws.com/bitly-downloads/nsq/nsq-0.3.8.$(OS)-amd64.go1.6.2.tar.gz | tar xz && cp nsq*/bin/* ../bin/ && rm -rf nsq* & echo "NSQd installed successfully."; \
+		cd _build && curl https://s3.amazonaws.com/bitly-downloads/nsq/nsq-0.3.8.$(OS)-amd64.go1.6.2.tar.gz | tar xz && cp nsq*/bin/* ../bin/ && rm -rf nsq* && echo "NSQd installed successfully."; \
 	fi
 
 build:
