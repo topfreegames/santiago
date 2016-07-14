@@ -101,7 +101,7 @@ test-services-shutdown: test-nsq-shutdown
 test-nsq: test-nsq-shutdown test-nsq-clear
 	@rm -rf /tmp/santiago-nsq-test.log
 	@mkdir -p /tmp/nsqd-test/1
-	@env MY_IP=$(MYIP) forego start -f ./scripts/TestNSQProcfile 2>&1 > /tmp/santiago-nsq-test.log &
+	@forego start -f ./scripts/TestNSQProcfile 2>&1 > /tmp/santiago-nsq-test.log &
 
 test-nsq-shutdown:
 	@-ps aux | egrep forego | egrep -v egrep | awk ' { print $$2 } ' | xargs kill -hup
@@ -119,3 +119,9 @@ docker-build:
 
 docker-run:
 	@docker run -i -t --rm -e SNT_SERVICES_NSQ_HOST=$(MYIP) -e SNT_SERVICES_NSQ_PORT=6669 -e SNT_SERVICES_NSQLOOKUP_HOST=$(MYIP) -e SNT_SERVICES_NSQLOOKUP_PORT=6667 -p 8080:8080 santiago
+
+docker-dev-build:
+	@docker build -t santiago-dev -f ./DevDockerfile .
+
+docker-dev-run:
+	@docker run -i -t --rm -e -p 8080:8080 santiago-dev
