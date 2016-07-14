@@ -21,6 +21,7 @@ setup-hooks:
 
 setup-nsq:
 	@mkdir -p _build
+	@mkdir -p bin
 	@if [ -f ./bin/nsqd ]; then \
 		echo "NSQd is already installed."; \
 	else \
