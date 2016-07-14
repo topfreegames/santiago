@@ -5,13 +5,14 @@ VERSION=$(cat ./metadata/version.go | grep "var VERSION" | awk ' { print $4 } ' 
 cp ./config/default.yaml ./dev
 
 docker build -t santiago .
-docker build -t santiago-dev ./dev
+docker build -t santiago-dev -f ./DevDockerfile .
 docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 
 docker tag santiago:latest tfgco/santiago:$VERSION.$TRAVIS_BUILD_NUMBER
 docker push tfgco/santiago:$VERSION.$TRAVIS_BUILD_NUMBER
-#docker tag santiago-dev:latest tfgco/santiago-dev:$VERSION.$TRAVIS_BUILD_NUMBER
-#docker push tfgco/santiago-dev:$VERSION.$TRAVIS_BUILD_NUMBER
+
+docker tag santiago-dev:latest tfgco/santiago-dev:$VERSION.$TRAVIS_BUILD_NUMBER
+docker push tfgco/santiago-dev:$VERSION.$TRAVIS_BUILD_NUMBER
 
 DOCKERHUB_LATEST=$(python ./scripts/get_latest_tag.py)
 

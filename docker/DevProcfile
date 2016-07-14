@@ -1,0 +1,5 @@
+nsqlookupd: bash -c "/go/bin/nsqlookupd --broadcast-address=localhost --tcp-address=0.0.0.0:6666 --http-address=0.0.0.0:6667 --broadcast-address=localhost"
+nsqd: bash -c "/go/bin/nsqd --broadcast-address=localhost --lookupd-tcp-address=127.0.0.1:6666 -data-path /home/santiago/nsqd --tcp-address=0.0.0.0:6668 --http-address=0.0.0.0:6669 --mem-queue-size=0 --worker-id=1 --broadcast-address=localhost"
+nsqadmin: bash -c "/go/bin/nsqadmin --lookupd-http-address=127.0.0.1:6667 --http-address=0.0.0.0:7000"
+api: bash -c "/go/bin/snt start --host 0.0.0.0 --port 8080 --config /home/santiago/default.yaml"
+worker: bash -c "echo 'connecting to NSQ: $SNT_SERVICES_NSQLOOKUP_HOST:$SNT_SERVICES_NSQLOOKUP_PORT' && /go/bin/snt-worker start -n $SNT_SERVICES_NSQLOOKUP_HOST -p $SNT_SERVICES_NSQLOOKUP_PORT"

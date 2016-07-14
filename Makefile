@@ -124,4 +124,4 @@ docker-dev-build:
 	@docker build -t santiago-dev -f ./DevDockerfile .
 
 docker-dev-run:
-	@docker run -i -t --rm -e -p 8080:8080 santiago-dev
+	@docker run -i -t --rm -p 8080:8080 santiago-dev
