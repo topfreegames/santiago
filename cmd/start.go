@@ -24,7 +24,11 @@ var startCmd = &cobra.Command{
 	Short: "starts the API",
 	Long:  `starts Santiago API.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logger := zap.NewJSON()
+		ll := zap.WarnLevel
+		if isDebug {
+			ll = zap.DebugLevel
+		}
+		logger := zap.NewJSON(ll)
 		options := api.NewOptions(
 			apiHost,
 			apiPort,

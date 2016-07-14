@@ -1,0 +1,2 @@
+api: /bin/sh -c "/go/bin/snt start --host 0.0.0.0 --port 8080 --config /home/santiago/default.yaml"
+worker: /bin/sh -c "echo 'connecting to NSQ: $SNT_SERVICES_NSQLOOKUP_HOST:$SNT_SERVICES_NSQLOOKUP_PORT' && /go/bin/snt-worker start -n $SNT_SERVICES_NSQLOOKUP_HOST -p $SNT_SERVICES_NSQLOOKUP_PORT"

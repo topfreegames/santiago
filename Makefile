@@ -6,6 +6,7 @@
 
 PACKAGES = $(shell glide novendor)
 DIRS = $(shell find . -type f -not -path '*/\.*' | grep '.go' | grep -v "^[.]\/vendor" | xargs -n1 dirname | sort | uniq | grep -v '^.$$')
+MYIP = $(shell ifconfig | egrep inet | egrep -v inet6 | egrep -v 127.0.0.1 | awk ' { print $$2 } ')
 
 setup-hooks:
 	@cd .git/hooks && ln -sf ../../hooks/pre-commit.sh pre-commit
@@ -59,7 +60,7 @@ nsq: nsq-shutdown
 	@mkdir -p /tmp/nsqd/1
 	@mkdir -p /tmp/nsqd/2
 	@mkdir -p /tmp/nsqd/3
-	@forego start -f ./scripts/NSQProcfile 2>&1 > /tmp/santiago-nsq.log &
+	@env MY_IP=$(MYIP) forego start -f ./scripts/NSQProcfile 2>&1 > /tmp/santiago-nsq.log &
 
 nsq-shutdown:
 	@-ps aux | egrep forego | egrep -v grep | awk ' { print $$2 } ' | xargs kill -2
@@ -107,3 +108,6 @@ test-nsq-log:
 
 docker-build:
 	@docker build -t santiago .
+
+docker-run:
+	@docker run -i -t --rm -e SNT_SERVICES_NSQ_HOST=$(MYIP) -e SNT_SERVICES_NSQ_PORT=6669 -e SNT_SERVICES_NSQLOOKUP_HOST=$(MYIP) -e SNT_SERVICES_NSQLOOKUP_PORT=6667 -p 8080:8080 santiago

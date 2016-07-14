@@ -211,6 +211,7 @@ func (w *Worker) Subscribe() error {
 
 	q.AddHandler(nsq.HandlerFunc(w.Handle))
 
+	l.Debug("Connecting to NSQLookup...")
 	err = q.ConnectToNSQLookupd(nsqLookupPath)
 	if err != nil {
 		l.Error("Consumer failed to connect to NSQLookupD.", zap.Error(err))
