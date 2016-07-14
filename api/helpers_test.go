@@ -92,7 +92,7 @@ func sendRequest(app *App, method, url string) *httpexpect.Request {
 		},
 		Reporter: &GinkgoReporter{},
 		Printers: []httpexpect.Printer{
-			httpexpect.NewDebugPrinter(&GinkgoPrinter{}, true),
+		//httpexpect.NewDebugPrinter(&GinkgoPrinter{}, true),
 		},
 	})
 
