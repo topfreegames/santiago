@@ -278,5 +278,6 @@ func (w *Worker) Start() {
 		if err != nil {
 			l.Warn("Failed to retrieve messages from queue.", zap.Error(err))
 		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }

@@ -14,12 +14,10 @@ import (
 	"github.com/uber-go/zap"
 )
 
-var nsqHost string
-var nsqPort int
-var nsqLookupPollInterval int
-var nsqMaxAttempts int
-var nsqMaxInFlight int
-var nsqDefaultRequeueDelay int
+var redisHost string
+var redisPort int
+var redisPass string
+var redisDB int
 var debug bool
 
 // startCmd represents the start command
@@ -36,14 +34,14 @@ var startCmd = &cobra.Command{
 
 		w := worker.New(
 			"webhooks",
-			nsqHost,
-			nsqPort,
-			time.Duration(nsqLookupPollInterval)*time.Second,
-			nsqMaxAttempts,
-			nsqMaxInFlight,
-			time.Duration(nsqDefaultRequeueDelay)*time.Second,
+			redisHost,
+			redisPort,
+			redisPass,
+			redisDB,
+			10,
 			logger,
 			debug,
+			5*time.Second,
 		)
 
 		w.Start()
@@ -61,11 +59,9 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	startCmd.Flags().StringVarP(&nsqHost, "host", "n", "127.0.0.1", "NSQ Lookup host address")
-	startCmd.Flags().IntVarP(&nsqPort, "port", "p", 7778, "NSQ Lookup host port")
-	startCmd.Flags().IntVarP(&nsqLookupPollInterval, "interval", "i", 15, "NSQ Lookup update interval in seconds")
-	startCmd.Flags().IntVarP(&nsqMaxAttempts, "max-attempts", "m", 10, "NSQ max attempts before error")
-	startCmd.Flags().IntVarP(&nsqMaxInFlight, "max-inflight", "f", 150, "NSQ max messages in flight")
-	startCmd.Flags().IntVarP(&nsqDefaultRequeueDelay, "rq-delay", "r", 1, "NSQ default requeue delay in seconds")
+	startCmd.Flags().StringVarP(&redisHost, "redis-host", "r", "127.0.0.1", "Queue Redis Host")
+	startCmd.Flags().IntVarP(&redisPort, "redis-port", "p", 6379, "Queue Redis Port")
+	startCmd.Flags().StringVarP(&redisPass, "redis-pass", "s", "", "Queue Redis Password")
+	startCmd.Flags().IntVarP(&redisDB, "redis-db", "b", 0, "Queue Redis DB")
 	startCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Starts the worker in debug mode")
 }

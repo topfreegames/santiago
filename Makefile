@@ -49,16 +49,16 @@ cross:
 	@chmod +x bin/*
 
 work:
-	@go run worker/main.go start -p 6667 -i 15 -d -m 3
+	@go run worker/main.go start -p $(LOCAL_REDIS_PORT) -d
 
 work-prod:
-	@go run worker/main.go start -p 6667
+	@./bin/snt-worker-$(OS)-x86_64 start -p $(LOCAL_REDIS_PORT)
 
 run:
 	@go run main.go start -p 3333 -d -c ./config/local.yaml
 
 run-prod:
-	@go run main.go start -p 3333 -c ./config/local.yaml
+	@./bin/snt-$(OS)-x86_64 start -p 3333 -c ./config/local.yaml
 
 services: redis
 
@@ -81,13 +81,9 @@ redis-shutdown:
 redis-clear:
 	@redis-cli -p 57574 FLUSHDB
 
-ci-test: test-services
-	@$(MAKE) test-coverage; \
-    case "$$?" in \
-	"0") $(MAKE) test-services-shutdown; exit 0;; \
-	*) $(MAKE) test-services-shutdown; exit 1;; \
-    esac;
-
+ci-test:
+	@env REDIS_HOST=6379 ginkgo --cover $(DIRS)
+	@$(MAKE) test-coverage-build
 
 test: test-services
 	@ginkgo --cover $(DIRS); \
@@ -96,7 +92,9 @@ test: test-services
 	*) $(MAKE) test-services-shutdown; exit 1;; \
     esac;
 
-test-coverage: test
+test-coverage: test test-coverage-build
+
+test-coverage-build:
 	@rm -rf _build
 	@mkdir -p _build
 	@echo "mode: count" > _build/test-coverage-all.out
