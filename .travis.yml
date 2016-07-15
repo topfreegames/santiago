@@ -15,7 +15,7 @@ install:
   - make setup
 
 script:
-  - make ci-test
+  - make test-coverage
 
 after_success:
   - $HOME/gopath/bin/goveralls -coverprofile _build/test-coverage-all.out -service=travis-ci
