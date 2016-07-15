@@ -40,7 +40,7 @@ You should see `RECEIVED Hello=World` in the terminal running your echo server.
 Now for the actual fun. Let's start our own Santiago server:
 
     $ docker pull tfgco/santiago-dev
-    $ docker run -i -t --rm -p 8080:8080 santiago-dev
+    $ docker run -i -t --rm -p 8080:8080 tfgco/santiago-dev
 
 Then let's enqueue a web hook to be dispatched in our Santiago server. For this part you'll need to know your network adapter IP address. You can find it out with this command:
 
