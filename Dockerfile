@@ -24,9 +24,9 @@ RUN go get -u github.com/ddollar/forego
 ADD ./docker/default.yaml /home/santiago/default.yaml
 ADD ./docker/Procfile /home/santiago/Procfile
 
-ENV SNT_SERVICES_NSQ_HOST localhost
-ENV SNT_SERVICES_NSQ_PORT 6669
-ENV SNT_SERVICES_NSQLOOKUP_HOST localhost
-ENV SNT_SERVICES_NSQLOOKUP_PORT 6667
+ENV SNT_API_REDIS_HOST localhost
+ENV SNT_API_REDIS_PORT 6379
+ENV SNT_API_REDIS_PASSWORD ""
+ENV SNT_API_REDIS_DB 0
 
 ENTRYPOINT /go/bin/forego start -f /home/santiago/Procfile

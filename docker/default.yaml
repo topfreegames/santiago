@@ -1,7 +1,7 @@
 api:
   workingText: WORKING
-
-services:
-  NSQ:
+  redis:
     host: localhost
-    port: 7780
+    port: 6379
+    password: ""
+    db: 0

@@ -10,11 +10,13 @@ docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 
 docker tag santiago:latest tfgco/santiago:$VERSION.$TRAVIS_BUILD_NUMBER
 docker push tfgco/santiago:$VERSION.$TRAVIS_BUILD_NUMBER
-docker push tfgco/santiago:latest
+docker tag santiago:latest tfgco/santiago:latest
+docker push tfgco/santiago
 
 docker tag santiago-dev:latest tfgco/santiago-dev:$VERSION.$TRAVIS_BUILD_NUMBER
 docker push tfgco/santiago-dev:$VERSION.$TRAVIS_BUILD_NUMBER
-docker push tfgco/santiago-dev:latest
+docker tag santiago-dev:latest tfgco/santiago-dev:latest
+docker push tfgco/santiago-dev
 
 DOCKERHUB_LATEST=$(python ./scripts/get_latest_tag.py)
 
