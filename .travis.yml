@@ -7,6 +7,7 @@ sudo: required
 
 services:
   - docker
+  - redis-server
 
 install:
   - go get github.com/nsqio/nsq/...
@@ -14,7 +15,7 @@ install:
   - make setup
 
 script:
-  - make test-coverage
+  - env REDIS_PORT=6379 make ci-test
 
 after_success:
   - $HOME/gopath/bin/goveralls -coverprofile _build/test-coverage-all.out -service=travis-ci
