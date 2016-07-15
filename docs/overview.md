@@ -56,25 +56,25 @@ When you decide to run your Santiago app in production, please read our [Hosting
 
 ## Features
 
-* **Reliable** - Santiago piggybacks on the scalable and reliable queueing system [NSQ](http://nsq.io);
+* **Reliable** - Santiago is very simple and relies on Redis for its queueing system;
 * **Delivery Retry** - Santiago will retry up to 10 times to deliver your web hook (configurable ammount);
 * **Log-Friendly** - We log almost any operation we do in Santiago, so you can easily debug it.
 * **Easy to deploy** - Santiago comes with containers already exported to docker hub for every single of our successful builds. Just pick your choice!
 
 ## Architecture
 
-Whenever you add a new web hook to Santiago, it enqueues it with NSQ. There are workers running that process this queue and try to send your web hooks.
+Whenever you add a new web hook to Santiago, it enqueues it with Redis. There are workers running that process this queue and try to send your web hooks.
 
 If the web hook fail, it re-enqueues the message up to a max number of times.
 
-That's pretty much all there's to know about Santiago's architecture. It's very advised to read the docs on how to host your [own NSQ cluster](http://nsq.io/deployment/production.html).
+That's pretty much all there's to know about Santiago's architecture. Running redis is out of the scope of this document.
 
 ## The Stack
 
 For the devs out there, our code is in Go, but more specifically:
 
 * Web Framework - [Iris](https://www.gitbook.com/book/kataras/iris/details) based on the insanely fast [FastHTTP](https://github.com/valyala/fasthttp);
-* Queueing - [NSQ](http://nsq.io).
+* Queueing - [Redis](http://redis.io).
 
 ## Who's Using it
 

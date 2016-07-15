@@ -1,4 +1,4 @@
-Installing Khan
-===============
+Installing Santiago
+===================
 
 TBW.

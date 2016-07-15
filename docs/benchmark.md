@@ -1,57 +1,75 @@
-Khan's Benchmarks
-=================
+Santiago's Benchmarks
+=====================
 
-You can see khan's benchmarks in our [CI server](https://travis-ci.org/topfreegames/khan/) as they get run with every build.
-
-## Creating the performance database
-
-To create a new database for running your benchmarks, just run:
-
-```
-$ make drop-perf migrate-perf
-```
-
-## Running Benchmarks
-
-If you want to run your own benchmarks, just download the project, and run:
-
-```
-$ make run-test-khan run-perf
-```
-
-## Generating test data
-
-If you want to run your perf tests against a database with more volume of data, just run this command prior to running the above one:
-
-```
-$ make drop-perf migrate-perf db-perf
-```
-
-**Warning**: This will take a long time running (around 30m).
+You can see santiago's benchmarks in our [CI server](https://travis-ci.org/topfreegames/santiago/) as they get run with every build.
 
 ## Results
+
+Runnning with Apache Benchmark on a Macbook Pro, with this command:
+
+    $ ab -n 10000 -c 30 -p ab.data "http://127.0.0.1:3333/hooks?method=POST&url=http%3A//127.0.0.1:3000/hooks/"
+
+With the ab.data file containing:
+
+    hello=world
 
 The results should be similar to these:
 
 ```
-BenchmarkCreateClan-2                  	    2000	   3053999 ns/op
-BenchmarkUpdateClan-2                  	    2000	   2000650 ns/op
-BenchmarkRetrieveClan-2                	     500	  10522248 ns/op
-BenchmarkRetrieveClanSummary-2         	    5000	   1187486 ns/op
-BenchmarkSearchClan-2                  	    5000	   1205325 ns/op
-BenchmarkListClans-2                   	    5000	   1135555 ns/op
-BenchmarkLeaveClan-2                   	    1000	   3824284 ns/op
-BenchmarkTransferOwnership-2           	     500	   8642818 ns/op
-BenchmarkCreateGame-2                  	    3000	   1248042 ns/op
-BenchmarkUpdateGame-2                  	    2000	   2141705 ns/op
-BenchmarkApplyForMembership-2          	    1000	   5695344 ns/op
-BenchmarkInviteForMembership-2         	     500	   8916792 ns/op
-BenchmarkApproveMembershipApplication-2	     500	  13480574 ns/op
-BenchmarkApproveMembershipInvitation-2 	    1000	  10517905 ns/op
-BenchmarkDeleteMembership-2            	     500	   9548314 ns/op
-BenchmarkPromoteMembership-2           	     500	   8961424 ns/op
-BenchmarkDemoteMembership-2            	     500	   9202060 ns/op
-BenchmarkCreatePlayer-2                	    3000	   1344267 ns/op
-BenchmarkUpdatePlayer-2                	    3000	   1829329 ns/op
-BenchmarkRetrievePlayer-2              	     300	  14412830 ns/op
+This is ApacheBench, Version 2.3 <$Revision: 1706008 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 127.0.0.1 (be patient)
+Completed 1000 requests
+Completed 2000 requests
+Completed 3000 requests
+Completed 4000 requests
+Completed 5000 requests
+Completed 6000 requests
+Completed 7000 requests
+Completed 8000 requests
+Completed 9000 requests
+Completed 10000 requests
+Finished 10000 requests
+
+
+Server Software:        iris
+Server Hostname:        127.0.0.1
+Server Port:            3333
+
+Document Path:          /hooks?method=POST&url=http%3A//10.0.23.64:3000/hooks/
+Document Length:        2 bytes
+
+Concurrency Level:      30
+Time taken for tests:   2.034 seconds
+Complete requests:      10000
+Failed requests:        0
+Total transferred:      1510000 bytes
+Total body sent:        1940000
+HTML transferred:       20000 bytes
+Requests per second:    4916.58 [#/sec] (mean)
+Time per request:       6.102 [ms] (mean)
+Time per request:       0.203 [ms] (mean, across all concurrent requests)
+Transfer rate:          725.00 [Kbytes/sec] received
+                        931.46 kb/s sent
+                        1656.47 kb/s total
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    2   0.7      2       9
+Processing:     1    4   1.3      4      16
+Waiting:        0    4   1.3      4      16
+Total:          1    6   1.6      6      18
+
+Percentage of the requests served within a certain time (ms)
+  50%      6
+  66%      6
+  75%      6
+  80%      6
+  90%      8
+  95%      9
+  98%     13
+  99%     13
+ 100%     18 (longest request)
 ```

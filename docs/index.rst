@@ -16,7 +16,6 @@ Contents:
    overview
    installing
    hosting
-   using_webhooks
    API
    benchmark
 
