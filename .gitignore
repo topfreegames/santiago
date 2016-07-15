@@ -27,3 +27,4 @@ vendor/
 /_build
 /bin
 .venv
+/docs/_build
