@@ -31,7 +31,7 @@ Now that we got our echo server, let's fire it up:
 
     $ node echo.js
 
-Echo server is now running at 8080. Then in another terminal, let's test it:
+Echo server is now running at 3000. Then in another terminal, let's test it:
 
     $ curl -dHello=World http://localhost:3000/
 
