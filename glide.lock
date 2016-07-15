@@ -1,5 +1,5 @@
-hash: fc5b907a1275c09d2a7283099b3512aed2c1c25552ab9da9ade9252282ae9bde
-updated: 2016-07-14T19:20:29.006799111-03:00
+hash: a919c5a26cf55bfd72ff098f5ed1a9e199c495074f91294057c89c46c4cfa697
+updated: 2016-07-15T10:50:58.834894728-03:00
 imports:
 - name: github.com/ajg/form
   version: 7ff89c75808766205bfa4411abb436c98c33eb5e
@@ -68,7 +68,6 @@ imports:
 - name: github.com/iris-contrib/middleware
   version: fd83c28d64e1de2f5a0d2021dbf214e3ef35de23
   subpackages:
-  - logger
   - recovery
 - name: github.com/iris-contrib/websocket
   version: a2c30084384c39ce6595169df8b93d7298ac04cd
@@ -80,8 +79,8 @@ imports:
   version: 4fd346066275553197aac6108e645c2d70249a0a
   subpackages:
   - config
-  - logger
   - context
+  - logger
   - render/rest
   - render/template
   - sessions
@@ -127,34 +126,10 @@ imports:
   version: d71fb89c9e0263aaed89645b0b168e11ccf597b1
 - name: github.com/onsi/ginkgo
   version: 462326b1628e124b23f42e87a8f2750e3c4e2d24
-  subpackages:
-  - config
-  - internal/codelocation
-  - internal/failer
-  - internal/remote
-  - internal/suite
-  - internal/testingtproxy
-  - internal/writer
-  - reporters
-  - reporters/stenographer
-  - types
-  - internal/containernode
-  - internal/leafnodes
-  - internal/spec
-  - internal/specrunner
 - name: github.com/onsi/gomega
   version: a78ae492d53aad5a7a232d0d0462c14c400e3ee7
   subpackages:
   - types
-  - internal/assertion
-  - internal/asyncassertion
-  - internal/testingtsupport
-  - matchers
-  - format
-  - matchers/support/goraph/bipartitegraph
-  - matchers/support/goraph/edge
-  - matchers/support/goraph/node
-  - matchers/support/goraph/util
 - name: github.com/pmezard/go-difflib
   version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
   subpackages:
@@ -217,6 +192,8 @@ imports:
   - unix
 - name: gopkg.in/gavv/httpexpect.v1
   version: 35c8994667acb85dad8c454a2d231ebc1b782caf
+- name: gopkg.in/redis.v4
+  version: eca5d02f24a99706525f77f544deee8e7894f26c
 - name: gopkg.in/yaml.v2
   version: a83829b6f1293c91addabc89d0571c246397bbf4
 testImports: []

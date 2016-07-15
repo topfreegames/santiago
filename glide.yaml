@@ -12,3 +12,5 @@ import:
 - package: github.com/Joker/jade
 - package: gopkg.in/gavv/httpexpect.v1
 - package: github.com/kataras/iris
+- package: gopkg.in/redis.v4
+  version: ^4.0.2

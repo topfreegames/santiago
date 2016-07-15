@@ -11,9 +11,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
-	"github.com/nsqio/go-nsq"
+	"gopkg.in/redis.v4"
+
 	"github.com/satori/go.uuid"
 	"github.com/topfreegames/santiago/testing"
 	. "github.com/topfreegames/santiago/worker/handler"
@@ -21,6 +24,42 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+//getTestRedisConn returns a connection to the test redis server
+func getTestRedisConn() (*redis.Client, error) {
+	redisPort := 57575
+	redisPortEnv := os.Getenv("REDIS_PORT")
+	if redisPortEnv != "" {
+		res, err := strconv.ParseInt(redisPortEnv, 10, 32)
+		if err != nil {
+			return nil, err
+		}
+		redisPort = int(res)
+	}
+	client := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("localhost:%d", redisPort),
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+	return client, nil
+}
+
+func pushHook(client *redis.Client, queue, method, url string, payload map[string]interface{}) error {
+	payloadJSON, _ := json.Marshal(payload)
+
+	dataJSON, _ := json.Marshal(map[string]interface{}{
+		"method":   method,
+		"url":      url,
+		"payload":  string(payloadJSON),
+		"attempts": 0,
+	})
+	count, err := client.RPush(queue, dataJSON).Result()
+	if err != nil {
+		return err
+	}
+	Expect(count).To(BeEquivalentTo(1))
+	return nil
+}
 
 func startRouteHandler(routes []string, port int) *[]map[string]interface{} {
 	responses := []map[string]interface{}{}
@@ -56,16 +95,19 @@ func startRouteHandler(routes []string, port int) *[]map[string]interface{} {
 
 var _ = Describe("Santiago Worker", func() {
 	var logger *testing.MockLogger
+	var testClient *redis.Client
+
 	BeforeEach(func() {
 		logger = testing.NewMockLogger()
+		cli, err := getTestRedisConn()
+		Expect(err).NotTo(HaveOccurred())
+		testClient = cli
 	})
 
 	Describe("Worker instance", func() {
 		It("should create a new instance", func() {
-			worker := NewDefault("127.0.0.1", 7778, logger)
+			worker := NewDefault("127.0.0.1", 57575, "", 0, logger)
 			Expect(worker).NotTo(BeNil())
-			Expect(worker.LookupHost).To(Equal("127.0.0.1"))
-			Expect(worker.LookupPort).To(Equal(7778))
 		})
 	})
 
@@ -73,18 +115,12 @@ var _ = Describe("Santiago Worker", func() {
 		It("should send webhook", func() {
 			responses := startRouteHandler([]string{"/webhook-sent"}, 52525)
 
-			payload := map[string]interface{}{
-				"method":  "POST",
-				"url":     "http://localhost:52525/webhook-sent",
-				"payload": map[string]interface{}{"qwe": 123},
-			}
-			payloadJSON, _ := json.Marshal(payload)
-			worker := NewDefault("127.0.0.1", 7778, logger)
-			msg := &nsq.Message{
-				Body:        payloadJSON,
-				Timestamp:   time.Now().UnixNano(),
-				Attempts:    0,
-				NSQDAddress: "127.0.0.1:7778",
+			worker := NewDefault("127.0.0.1", 57575, "", 0, logger)
+			msg := map[string]interface{}{
+				"method":   "POST",
+				"url":      "http://localhost:52525/webhook-sent",
+				"payload":  "{\"qwe\":123}",
+				"attempts": 0,
 			}
 
 			err := worker.Handle(msg)
@@ -93,7 +129,7 @@ var _ = Describe("Santiago Worker", func() {
 			Expect(*responses).To(HaveLen(1))
 
 			resp := (*responses)[0]["payload"].(map[string]interface{})
-			Expect(int(resp["qwe"].(float64))).To(Equal(123))
+			Expect(resp["qwe"]).To(BeEquivalentTo(123))
 		})
 	})
 
@@ -102,31 +138,27 @@ var _ = Describe("Santiago Worker", func() {
 			queue := uuid.NewV4().String()
 			responses := startRouteHandler([]string{"/webhook-subscribed"}, 52525)
 
-			payload := map[string]interface{}{
-				"method":  "POST",
-				"url":     "http://localhost:52525/webhook-subscribed",
-				"payload": map[string]interface{}{"qwe": 123},
-			}
-			payloadJSON, _ := json.Marshal(payload)
-
 			worker := New(
 				queue,
-				"127.0.0.1", 7778, time.Duration(15)*time.Millisecond,
-				10, 150, time.Duration(15)*time.Millisecond,
-				logger, true,
+				"127.0.0.1", 57575, "", 0,
+				10, logger, true, 10*time.Millisecond,
 			)
 
-			err := worker.Subscribe()
+			err := pushHook(
+				testClient, queue, "POST",
+				"http://localhost:52525/webhook-subscribed",
+				map[string]interface{}{
+					"qwe": 123,
+				},
+			)
 			Expect(err).NotTo(HaveOccurred())
-			time.Sleep(50 * time.Millisecond)
 
-			status, _, err := worker.DoRequest("POST", fmt.Sprintf("http://127.0.0.1:7780/put?topic=%s", queue), string(payloadJSON))
+			err = worker.ProcessSubscription()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(Equal(200))
-			time.Sleep(300 * time.Millisecond)
+
+			time.Sleep(10 * time.Millisecond)
 
 			Expect(*responses).To(HaveLen(1))
-
 			resp := (*responses)[0]["payload"].(map[string]interface{})
 			Expect(int(resp["qwe"].(float64))).To(Equal(123))
 		})
@@ -134,34 +166,42 @@ var _ = Describe("Santiago Worker", func() {
 			hookURL := "/webhook-retry"
 			queue := uuid.NewV4().String()
 
-			payload := map[string]interface{}{
-				"method":  "POST",
-				"url":     fmt.Sprintf("http://localhost:52525%s", hookURL),
-				"payload": map[string]interface{}{"qwe": 123},
-			}
-			payloadJSON, _ := json.Marshal(payload)
-
 			worker := New(
 				queue,
-				"127.0.0.1", 7778, time.Duration(15)*time.Millisecond,
-				10, 150, time.Duration(15)*time.Millisecond,
-				logger, true,
+				"127.0.0.1", 57575, "", 0,
+				10, logger, true, time.Millisecond,
 			)
 
-			err := worker.Subscribe()
+			err := pushHook(
+				testClient, queue, "POST",
+				fmt.Sprintf("http://localhost:52525%s", hookURL),
+				map[string]interface{}{
+					"qwe": 123,
+				},
+			)
 			Expect(err).NotTo(HaveOccurred())
-			time.Sleep(50 * time.Millisecond)
 
-			status, _, err := worker.DoRequest("POST", fmt.Sprintf("http://127.0.0.1:7780/put?topic=%s", queue), string(payloadJSON))
+			err = worker.ProcessSubscription()
+			Expect(err).To(HaveOccurred())
+
+			res, err := testClient.LRange(queue, 0, 1).Result()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(status).To(Equal(200))
-			time.Sleep(300 * time.Millisecond)
+
+			Expect(res).To(HaveLen(1))
+
+			var hook map[string]interface{}
+			err = json.Unmarshal([]byte(res[0]), &hook)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(hook["attempts"]).To(BeEquivalentTo(1))
+			Expect(hook["method"]).To(BeEquivalentTo("POST"))
+			Expect(hook["url"]).To(BeEquivalentTo("http://localhost:52525/webhook-retry"))
+			Expect(hook["payload"]).To(BeEquivalentTo("{\"qwe\":123}"))
 
 			responses := startRouteHandler([]string{hookURL}, 52525)
 
-			for len(*responses) < 1 {
-				time.Sleep(10 * time.Millisecond)
-			}
+			err = worker.ProcessSubscription()
+			Expect(err).NotTo(HaveOccurred())
 
 			Expect(*responses).To(HaveLen(1))
 

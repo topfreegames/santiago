@@ -8,9 +8,12 @@ PACKAGES = $(shell glide novendor)
 DIRS = $(shell find . -type f -not -path '*/\.*' | grep '.go' | grep -v "^[.]\/vendor" | xargs -n1 dirname | sort | uniq | grep -v '^.$$')
 MYIP = $(shell ifconfig | egrep inet | egrep -v inet6 | egrep -v 127.0.0.1 | awk ' { print $$2 } ')
 OS = "$(shell uname | awk '{ print tolower($$0) }')"
+LOCAL_REDIS_PORT=57574
+REDIS_CONF_PATH=./scripts/redis.conf
+TEST_LOCAL_REDIS_PORT=57575
+TEST_REDIS_CONF_PATH=./scripts/test_redis.conf
 
-setup: setup-hooks setup-nsq
-	@type nsqlookupd >/dev/null 2>&1 || { echo >&2 "Please ensure NSQ is installed before continuing.\nFor more information, refer to http://nsq.io/deployment/installing.html.\n\nSetup aborted!\n"; exit 1; }
+setup: setup-hooks
 	@go get -u github.com/ddollar/forego
 	@go get -u github.com/onsi/ginkgo/ginkgo
 	@go get -u github.com/Masterminds/glide/...
@@ -18,15 +21,6 @@ setup: setup-hooks setup-nsq
 
 setup-hooks:
 	@cd .git/hooks && ln -sf ../../hooks/pre-commit.sh pre-commit
-
-setup-nsq:
-	@mkdir -p _build
-	@mkdir -p bin
-	@if [ -f ./bin/nsqd ]; then \
-		echo "NSQd is already installed."; \
-	else \
-		cd _build && curl https://s3.amazonaws.com/bitly-downloads/nsq/nsq-0.3.8.$(OS)-amd64.go1.6.2.tar.gz | tar xz && cp nsq*/bin/* ../bin/ && rm -rf nsq* && echo "NSQd installed successfully."; \
-	fi
 
 setup-docs:
 	@mkdir -p /tmp/.pip/cache
@@ -66,30 +60,32 @@ run:
 run-prod:
 	@go run main.go start -p 3333 -c ./config/local.yaml
 
-services: nsq
+services: redis
 
-services-shutdown: nsq-shutdown
+services-shutdown: redis-shutdown
 
-services-clear: nsq-clear
+services-clear: redis-clear
 
-nsq: nsq-shutdown
-	@rm -rf /tmp/santiago-nsq.log
-	@mkdir -p /tmp/nsqd/1
-	@mkdir -p /tmp/nsqd/2
-	@mkdir -p /tmp/nsqd/3
-	@env MY_IP=$(MYIP) forego start -f ./scripts/NSQProcfile 2>&1 > /tmp/santiago-nsq.log &
+redis: redis-shutdown
+	@if [ -z "$$REDIS_PORT" ]; then \
+		redis-server $(REDIS_CONF_PATH) && sleep 1 &&  \
+		redis-cli -p $(LOCAL_REDIS_PORT) info > /dev/null && \
+		echo "REDIS running locally at localhost:$(LOCAL_REDIS_PORT)."; \
+	else \
+		echo "REDIS running at $$REDIS_PORT"; \
+	fi
 
-nsq-shutdown:
-	@-ps aux | egrep forego | egrep -v grep | awk ' { print $$2 } ' | xargs kill -2
+redis-shutdown:
+	@-redis-cli -p 57574 shutdown
 
-nsq-clear:
-	@rm -rf /tmp/nsqd
+redis-clear:
+	@redis-cli -p 57574 FLUSHDB
 
 ci-test: test-services
-	@ginkgo --cover $(DIRS); \
+	@$(MAKE) test-coverage; \
     case "$$?" in \
 	"0") $(MAKE) test-services-shutdown; exit 0;; \
-	*) $(MAKE) test-services-shutdown; cat /tmp/santiago-nsq-test.log; exit 1;; \
+	*) $(MAKE) test-services-shutdown; exit 1;; \
     esac;
 
 
@@ -109,27 +105,24 @@ test-coverage: test
 test-coverage-html: test-coverage
 	@go tool cover -html=_build/test-coverage-all.out
 
-test-services: test-nsq
+test-services: test-redis
 
-test-services-log: test-nsq-log
+test-services-shutdown: test-redis-shutdown
 
-test-services-shutdown: test-nsq-shutdown
+test-redis: test-redis-shutdown test-redis-clear
+	@if [ -z "$$REDIS_PORT" ]; then \
+		redis-server $(TEST_REDIS_CONF_PATH) && sleep 1 &&  \
+		redis-cli -p $(TEST_LOCAL_REDIS_PORT) info > /dev/null && \
+		echo "REDIS running locally at localhost:$(TEST_LOCAL_REDIS_PORT)."; \
+	else \
+		echo "REDIS running at $$REDIS_PORT"; \
+	fi
 
-test-nsq: test-nsq-shutdown test-nsq-clear
-	@rm -rf /tmp/santiago-nsq-test.log
-	@mkdir -p /tmp/nsqd-test/1
-	@forego start -f ./scripts/TestNSQProcfile 2>&1 > /tmp/santiago-nsq-test.log &
+test-redis-shutdown:
+	@-redis-cli -p 57575 shutdown
 
-test-nsq-shutdown:
-	@-ps aux | egrep forego | egrep -v egrep | awk ' { print $$2 } ' | xargs kill -1
-
-test-nsq-clear:
-	@rm -rf /tmp/nsqd-test
-
-test-nsq-log:
-	@echo "-------------------------------"
-	@echo "NSQ Log:"
-	@cat /tmp/santiago-nsq-test.log
+test-redis-clear:
+	@rm -rf "/tmp/redis_test_santiago*"
 
 docker-build:
 	@docker build -t santiago .

@@ -14,8 +14,9 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/redis.v4"
+
 	"github.com/iris-contrib/middleware/recovery"
-	"github.com/kataras/fasthttp"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/config"
 	"github.com/spf13/viper"
@@ -28,6 +29,7 @@ type App struct {
 	Logger        zap.Logger
 	ServerOptions *Options
 	WebApp        *iris.Framework
+	Client        *redis.Client
 	Queue         string
 }
 
@@ -46,8 +48,8 @@ func New(options *Options, logger zap.Logger) (*App, error) {
 		Logger:        l,
 		ServerOptions: options,
 		Config:        viper.New(),
+		Queue:         "webhooks",
 	}
-	a.Queue = "webhooks"
 
 	err := a.initialize()
 	if err != nil {
@@ -71,6 +73,7 @@ func (a *App) initialize() error {
 		return err
 	}
 
+	a.connectToRedis()
 	a.initializeWebApp()
 
 	l.Info(
@@ -83,6 +86,11 @@ func (a *App) initialize() error {
 
 func (a *App) setDefaultConfigurationOptions() {
 	a.Config.SetDefault("api.workingText", "WORKING")
+
+	a.Config.SetDefault("api.redis.host", "localhost")
+	a.Config.SetDefault("api.redis.port", 57575)
+	a.Config.SetDefault("api.redis.password", "")
+	a.Config.SetDefault("api.redis.db", 0)
 }
 
 func (a *App) loadConfiguration() error {
@@ -126,73 +134,36 @@ func (a *App) loadConfiguration() error {
 	return nil
 }
 
-//DoRequest to some webhook endpoint
-func (a *App) DoRequest(method, url, payload string) (int, string, error) {
-	l := a.Logger.With(
-		zap.String("operation", "DoRequest"),
-		zap.String("method", method),
-		zap.String("url", url),
-		zap.String("payload", payload),
-	)
-
-	client := fasthttp.Client{
-		Name: "santiago",
-	}
-
-	req := fasthttp.AcquireRequest()
-	req.Header.SetMethod(method)
-	req.SetRequestURI(url)
-	req.AppendBody([]byte(payload))
-	resp := fasthttp.AcquireResponse()
-
-	timeout := time.Duration(5) * time.Second
-
-	start := time.Now()
-	l.Debug("Sending to NSQ...")
-	err := client.DoTimeout(req, resp, timeout)
-	if err != nil {
-		l.Error("Request to NSQ failed.", zap.Error(err))
-		return 0, "", err
-	}
-
-	l.Info("Sending to NSQ succeeded.", zap.Duration("RequestDuration", time.Now().Sub(start)))
-	return resp.StatusCode(), string(resp.Body()), nil
-}
-
-//PublishHook sends a hook to NSQ
-func (a *App) PublishHook(method, url string, payload string) error {
-	host := a.Config.GetString("services.NSQ.host")
-	port := a.Config.GetInt("services.NSQ.port")
-	nsqURL := fmt.Sprintf("http://%s:%d/put?topic=%s", host, port, a.Queue)
+func (a *App) connectToRedis() error {
+	redisHost := a.Config.GetString("api.redis.host")
+	redisPort := a.Config.GetInt("api.redis.port")
+	redisPass := a.Config.GetString("api.redis.password")
+	redisDB := a.Config.GetInt("api.redis.db")
 
 	l := a.Logger.With(
-		zap.String("operation", "PublishHook"),
-		zap.String("url", url),
-		zap.Object("payload", payload),
-		zap.Object("nsqURL", nsqURL),
+		zap.String("source", "api"),
+		zap.String("operation", "connectToRedis"),
+		zap.String("redisHost", redisHost),
+		zap.Int("redisPort", redisPort),
+		zap.Int("redisDB", redisDB),
 	)
 
-	data := map[string]interface{}{
-		"method":  method,
-		"url":     url,
-		"payload": payload,
-	}
-	dataJSON, _ := json.Marshal(data)
+	l.Debug("Connecting to Redis...")
+	client := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", redisHost, redisPort),
+		Password: redisPass,
+		DB:       redisDB,
+	})
 
 	start := time.Now()
-	l.Debug("Publishing hook...")
-	status, _, err := a.DoRequest("POST", nsqURL, string(dataJSON))
+	_, err := client.Ping().Result()
 	if err != nil {
-		l.Error("Publishing hook failed.", zap.Error(err))
+		l.Error("Could not connect to redis.", zap.Error(err))
 		return err
 	}
-	if status > 399 {
-		err := fmt.Errorf("Could not add hook to queue at %s (status: %d)", nsqURL, status)
-		l.Error("Publishing hook failed.", zap.Error(err))
-		return err
-	}
-	l.Info("Hook published successfully.", zap.Duration("PublishDuration", time.Now().Sub(start)))
+	l.Info("Connected to Redis successfully.", zap.Duration("connection", time.Now().Sub(start)))
 
+	a.Client = client
 	return nil
 }
 
@@ -217,6 +188,38 @@ func (a *App) initializeWebApp() {
 	a.WebApp.Post("/hooks", AddHookHandler(a))
 
 	l.Info("Web App configured successfully")
+}
+
+//PublishHook sends a hook to the queue
+func (a *App) PublishHook(method, url string, payload string) error {
+	queue := a.Queue
+
+	l := a.Logger.With(
+		zap.String("operation", "PublishHook"),
+		zap.String("url", url),
+		zap.Object("payload", payload),
+		zap.Object("queue", queue),
+	)
+
+	data := map[string]interface{}{
+		"method":   method,
+		"url":      url,
+		"payload":  payload,
+		"attempts": 0,
+	}
+	dataJSON, _ := json.Marshal(data)
+
+	start := time.Now()
+
+	l.Debug("Publishing hook...")
+	_, err := a.Client.RPush(queue, dataJSON).Result()
+	if err != nil {
+		l.Error("Publishing hook failed.", zap.Error(err))
+		return err
+	}
+	l.Info("Hook published successfully.", zap.Duration("PublishDuration", time.Now().Sub(start)))
+
+	return nil
 }
 
 //Start the application
