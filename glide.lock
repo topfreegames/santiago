@@ -1,5 +1,5 @@
-hash: a919c5a26cf55bfd72ff098f5ed1a9e199c495074f91294057c89c46c4cfa697
-updated: 2016-07-15T10:50:58.834894728-03:00
+hash: 86fcf8c6b47439dac6e491f177952f8b06a452acdb22f091cfb8c5bde4932167
+updated: 2016-07-15T16:32:57.903157862-03:00
 imports:
 - name: github.com/ajg/form
   version: 7ff89c75808766205bfa4411abb436c98c33eb5e
@@ -99,8 +99,8 @@ imports:
 - name: github.com/klauspost/compress
   version: 14eb9c4951195779ecfbec34431a976de7335b0a
   subpackages:
-  - flate
   - gzip
+  - flate
   - zlib
 - name: github.com/klauspost/cpuid
   version: 09cded8978dc9e80714c4d85b0322337b0a1e5e0
@@ -118,10 +118,6 @@ imports:
   version: d2dd0262208475919e1a362f675cfc0e7c10e905
 - name: github.com/moul/http2curl
   version: b1479103caacaa39319f75e7f57fc545287fca0d
-- name: github.com/mreiferson/go-snappystream
-  version: 028eae7ab5c4c9e2d1cb4c4ca1e53259bbe7e504
-  subpackages:
-  - snappy-go
 - name: github.com/nsqio/go-nsq
   version: d71fb89c9e0263aaed89645b0b168e11ccf597b1
 - name: github.com/onsi/ginkgo
@@ -168,8 +164,8 @@ imports:
 - name: github.com/valyala/fasthttp
   version: 886e5411604884629c566961ea8ed2cec074e4b1
   subpackages:
-  - fasthttputil
   - fasthttpadaptor
+  - fasthttputil
 - name: github.com/xeipuuv/gojsonpointer
   version: e0fe6f68307607d540ed8eac07a342c33fa1b54a
 - name: github.com/xeipuuv/gojsonreference
@@ -190,10 +186,19 @@ imports:
   version: a408501be4d17ee978c04a618e7a1b22af058c0e
   subpackages:
   - unix
+- name: gopkg.in/bsm/ratelimit.v1
+  version: db14e161995a5177acef654cb0dd785e8ee8bc22
 - name: gopkg.in/gavv/httpexpect.v1
   version: 35c8994667acb85dad8c454a2d231ebc1b782caf
 - name: gopkg.in/redis.v4
   version: eca5d02f24a99706525f77f544deee8e7894f26c
+  subpackages:
+  - internal
+  - internal/consistenthash
+  - internal/errors
+  - internal/hashtag
+  - internal/pool
+  - internal/proto
 - name: gopkg.in/yaml.v2
   version: a83829b6f1293c91addabc89d0571c246397bbf4
 testImports: []

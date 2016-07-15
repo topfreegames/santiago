@@ -14,3 +14,4 @@ import:
 - package: github.com/kataras/iris
 - package: gopkg.in/redis.v4
   version: ^4.0.2
+- package: gopkg.in/bsm/ratelimit.v1
