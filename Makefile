@@ -82,7 +82,8 @@ redis-clear:
 	@redis-cli -p 57574 FLUSHDB
 
 ci-test:
-	@env REDIS_HOST=6379 ginkgo --cover $(DIRS)
+	@env
+	@ginkgo --cover $(DIRS)
 	@$(MAKE) test-coverage-build
 
 test: test-services
