@@ -82,8 +82,7 @@ redis-clear:
 	@redis-cli -p 57574 FLUSHDB
 
 ci-test:
-	@env
-	@ginkgo --cover $(DIRS)
+	@REDIS_PORT=6379 ginkgo --cover $(DIRS)
 	@$(MAKE) test-coverage-build
 
 test: test-services
