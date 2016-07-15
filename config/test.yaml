@@ -2,5 +2,5 @@ api:
   workingText: WORKING
   redis:
     host: localhost
-    port: 57574
+    port: 57575
     db: 0

@@ -21,6 +21,7 @@ func AddHookHandler(app *App) func(c *iris.Context) {
 			zap.String("source", "addHookHandler"),
 			zap.String("method", method),
 			zap.String("url", url),
+			zap.String("queue", app.Queue),
 		)
 
 		if method == "" || url == "" {
@@ -31,7 +32,6 @@ func AddHookHandler(app *App) func(c *iris.Context) {
 
 		payload := string(c.Request.Body())
 		app.PublishHook(method, url, payload)
-		l.Debug("Hook published successfully.")
 		c.Write("OK")
 	}
 }
