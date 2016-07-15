@@ -13,7 +13,8 @@ EXPOSE 8080
 RUN apk update
 RUN apk add git bash
 
-#RUN curl https://s3.amazonaws.com/bitly-downloads/nsq/nsq-0.3.8.linux-amd64.go1.6.2.tar.gz | tar xz && cp nsq*/bin/* /usr/bin
+# http://stackoverflow.com/questions/34729748/installed-go-binary-not-found-in-path-on-alpine-linux-docker
+RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
 
 ADD bin/snt-linux-x86_64 /go/bin/snt
 ADD bin/snt-worker-linux-x86_64 /go/bin/snt-worker
