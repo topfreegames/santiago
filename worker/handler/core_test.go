@@ -142,6 +142,7 @@ var _ = Describe("Santiago Worker", func() {
 				queue,
 				"127.0.0.1", 57575, "", 0,
 				10, logger, true, 10*time.Millisecond,
+				"",
 			)
 
 			err := pushHook(
@@ -169,7 +170,7 @@ var _ = Describe("Santiago Worker", func() {
 			worker := New(
 				queue,
 				"127.0.0.1", 57575, "", 0,
-				10, logger, true, time.Millisecond,
+				10, logger, true, time.Millisecond, "",
 			)
 
 			err := pushHook(
