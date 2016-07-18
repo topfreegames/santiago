@@ -86,6 +86,6 @@ var _ = Describe("Add Hook Handler", func() {
 			Expect(res.Body().Raw()).To(Equal("OK"))
 		})
 
-		Expect(runtime.Seconds()).Should(BeNumerically("<", 0.01), "Add Hook shouldn't take too long.")
+		Expect(runtime.Seconds()).Should(BeNumerically("<", 0.02), "Add Hook shouldn't take too long.")
 	}, 200)
 })
