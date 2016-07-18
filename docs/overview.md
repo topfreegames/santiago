@@ -48,7 +48,7 @@ Then let's enqueue a web hook to be dispatched in our Santiago server. For this 
 
 Now that you know your IP, just replace $IP with your actual IP address:
 
-    $ curl -dHello=World http://localhost:8080/hooks?method=POST&url=http%3A//$IP%3A3000/
+    $ curl -dHello=World "http://localhost:8080/hooks?method=POST&url=http%3A//$IP%3A3000/"
 
 Once more you should see `RECEIVED Hello=World` in the terminal running Santiago.
 

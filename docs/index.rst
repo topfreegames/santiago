@@ -14,7 +14,6 @@ Contents:
    :maxdepth: 2
 
    overview
-   installing
    hosting
    API
    benchmark
