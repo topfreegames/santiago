@@ -7,6 +7,8 @@
 package api
 
 import (
+	"fmt"
+
 	"github.com/kataras/iris"
 	"github.com/uber-go/zap"
 )
@@ -30,8 +32,17 @@ func AddHookHandler(app *App) func(c *iris.Context) {
 			return
 		}
 
+		l.Debug("Sending hook to queue...")
 		payload := string(c.Request.Body())
-		app.PublishHook(method, url, payload)
+
+		err := app.PublishHook(method, url, payload)
+		if err != nil {
+			l.Error("Hook failed to be published.", zap.Error(err))
+			FailWith(500, fmt.Sprintf("Hook failed to be published (%s).", err.Error()), c)
+			return
+		}
+
 		c.Write("OK")
+		l.Debug("Hook sent to queue successfully...")
 	}
 }

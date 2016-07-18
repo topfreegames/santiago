@@ -16,7 +16,7 @@ import (
 
 	"gopkg.in/redis.v4"
 
-	"github.com/iris-contrib/middleware/recovery"
+	"github.com/getsentry/raven-go"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/config"
 	"github.com/rcrowley/go-metrics"
@@ -76,6 +76,7 @@ func (a *App) initialize() error {
 	}
 
 	a.connectToRedis()
+	a.connectRaven()
 	a.initializeWebApp()
 
 	l.Info(
@@ -100,6 +101,8 @@ func (a *App) setDefaultConfigurationOptions() {
 	a.Config.SetDefault("api.redis.port", 57575)
 	a.Config.SetDefault("api.redis.password", "")
 	a.Config.SetDefault("api.redis.db", 0)
+
+	a.Config.SetDefault("api.sentry.url", "")
 }
 
 func (a *App) loadConfiguration() error {
@@ -176,6 +179,10 @@ func (a *App) connectToRedis() error {
 	return nil
 }
 
+func (a *App) connectRaven() {
+	raven.SetDSN(a.Config.GetString("api.sentry.url"))
+}
+
 func (a *App) initializeWebApp() {
 	debug := a.ServerOptions.Debug
 
@@ -193,9 +200,7 @@ func (a *App) initializeWebApp() {
 	a.WebApp.Use(NewLoggerMiddleware(a.Logger))
 	a.WebApp.Use(&RecoveryMiddleware{OnError: a.onErrorHandler})
 	a.WebApp.Use(&VersionMiddleware{App: a})
-
-	a.WebApp.Use(NewLoggerMiddleware(a.Logger))
-	a.WebApp.Use(recovery.New(os.Stderr))
+	a.WebApp.Use(&SentryMiddleware{App: a})
 
 	a.WebApp.Get("/healthcheck", HealthCheckHandler(a))
 	a.WebApp.Get("/status", StatusHandler(a))
@@ -266,6 +271,11 @@ func (a *App) onErrorHandler(err error, stack []byte) {
 		zap.String("panicText", err.Error()),
 		zap.String("stack", string(stack)),
 	)
+	tags := map[string]string{
+		"source": "app",
+		"type":   "panic",
+	}
+	raven.CaptureError(err, tags)
 }
 
 //Start the application

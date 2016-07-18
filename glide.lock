@@ -1,5 +1,5 @@
-hash: 197e5fd3ca668f3be77eeaa130f7651fcb4539572e965157f91200170d307f8b
-updated: 2016-07-18T10:40:26.245548507-03:00
+hash: 483b994c81acb4f79e81b465992a484cd4dadc5493995802220f81158dc65e05
+updated: 2016-07-18T15:06:55.034221573-03:00
 imports:
 - name: github.com/ajg/form
   version: 7ff89c75808766205bfa4411abb436c98c33eb5e
@@ -40,6 +40,8 @@ imports:
   version: 35c8994667acb85dad8c454a2d231ebc1b782caf
 - name: github.com/gavv/monotime
   version: 259cd7b345f5aa080eff16f21d7866ef7dea9528
+- name: github.com/getsentry/raven-go
+  version: dffeb57df75d6a911f00232155194e43d79d38d7
 - name: github.com/google/go-querystring
   version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
   subpackages:
@@ -131,7 +133,7 @@ imports:
   subpackages:
   - difflib
 - name: github.com/rcrowley/go-metrics
-  version: cfa5a85e9f0abbdf1701b59082c36fc7bff10759
+  version: bdb33529eca3e55eac7328e07c57012a797af602
 - name: github.com/russross/blackfriday
   version: 1d6b8e9301e720b08a8938b8c25c018285885438
 - name: github.com/satori/go.uuid

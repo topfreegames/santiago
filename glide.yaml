@@ -16,3 +16,4 @@ import:
   version: ^4.0.2
 - package: gopkg.in/bsm/ratelimit.v1
 - package: github.com/rcrowley/go-metrics
+- package: github.com/getsentry/raven-go
