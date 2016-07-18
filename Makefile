@@ -34,7 +34,7 @@ build:
 
 cross: cross-linux cross-darwin
 
-cross-linux: cross-exec
+cross-linux:
 	@mkdir -p ./bin
 	@echo "Building for linux-i386..."
 	@env GOOS=linux GOARCH=386 go build -o ./bin/snt-linux-i386 ./main.go
@@ -42,8 +42,9 @@ cross-linux: cross-exec
 	@echo "Building for linux-x86_64..."
 	@env GOOS=linux GOARCH=amd64 go build -o ./bin/snt-linux-x86_64 ./main.go
 	@env GOOS=linux GOARCH=amd64 go build -o ./bin/snt-worker-linux-x86_64 ./worker/main.go
+	@$(MAKE) cross-exec
 
-cross-darwin: cross-exec
+cross-darwin:
 	@mkdir -p ./bin
 	@echo "Building for darwin-i386..."
 	@env GOOS=darwin GOARCH=386 go build -o ./bin/snt-darwin-i386 ./main.go
@@ -51,6 +52,7 @@ cross-darwin: cross-exec
 	@echo "Building for darwin-x86_64..."
 	@env GOOS=darwin GOARCH=amd64 go build -o ./bin/snt-darwin-x86_64 ./main.go
 	@env GOOS=darwin GOARCH=amd64 go build -o ./bin/snt-worker-darwin-x86_64 ./worker/main.go
+	@$(MAKE) cross-exec
 
 cross-exec:
 	@chmod +x bin/*
