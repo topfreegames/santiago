@@ -1,3 +1,0 @@
-lookup: bash -c "./bin/nsqlookupd --broadcast-address=localhost --tcp-address=0.0.0.0:6666 --http-address=0.0.0.0:6667 --broadcast-address=$MY_IP"
-nsqd: bash -c "echo 'Using IP as $MY_IP...' && ./bin/nsqd --broadcast-address=localhost --lookupd-tcp-address=127.0.0.1:6666 -data-path /tmp/nsqd/1 --tcp-address=0.0.0.0:6668 --http-address=0.0.0.0:6669 --mem-queue-size=0 --worker-id=1 --broadcast-address=$MY_IP"
-admin: bash -c "./bin/nsqadmin --lookupd-http-address=127.0.0.1:6667 --http-address=0.0.0.0:7000"

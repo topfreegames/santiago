@@ -133,7 +133,7 @@ docker-build:
 	@docker build -t santiago .
 
 docker-run:
-	@docker run -i -t --rm -e SNT_SERVICES_NSQ_HOST=$(MYIP) -e SNT_SERVICES_NSQ_PORT=6669 -e SNT_SERVICES_NSQLOOKUP_HOST=$(MYIP) -e SNT_SERVICES_NSQLOOKUP_PORT=6667 -p 8080:8080 santiago
+	@docker run -i -t --rm -e SNT_REDIS_HOST=$(MYIP) -e SNT_REDIS_PORT=$(LOCAL_REDIS_PORT) -p 8080:8080 santiago
 
 docker-dev-build:
 	@docker build -t santiago-dev -f ./DevDockerfile .

@@ -1,5 +1,5 @@
-hash: 483b994c81acb4f79e81b465992a484cd4dadc5493995802220f81158dc65e05
-updated: 2016-07-18T15:06:55.034221573-03:00
+hash: 792bccc616bb7cbf84412734939d6f042e7a79f1e0f17ab41c2f2b3721eae87b
+updated: 2016-07-18T18:21:14.266024737-03:00
 imports:
 - name: github.com/ajg/form
   version: 7ff89c75808766205bfa4411abb436c98c33eb5e
@@ -67,10 +67,6 @@ imports:
   version: 9d4599565f75fd376a8e4ae5ccc98fc078b93b69
 - name: github.com/iris-contrib/formBinder
   version: 32009bbc76eda475a6d1eb24787d1fdcdaf80e71
-- name: github.com/iris-contrib/middleware
-  version: fd83c28d64e1de2f5a0d2021dbf214e3ef35de23
-  subpackages:
-  - recovery
 - name: github.com/iris-contrib/websocket
   version: a2c30084384c39ce6595169df8b93d7298ac04cd
 - name: github.com/Joker/jade
@@ -120,8 +116,6 @@ imports:
   version: d2dd0262208475919e1a362f675cfc0e7c10e905
 - name: github.com/moul/http2curl
   version: b1479103caacaa39319f75e7f57fc545287fca0d
-- name: github.com/nsqio/go-nsq
-  version: d71fb89c9e0263aaed89645b0b168e11ccf597b1
 - name: github.com/onsi/ginkgo
   version: 462326b1628e124b23f42e87a8f2750e3c4e2d24
 - name: github.com/onsi/gomega
