@@ -58,8 +58,9 @@ When you decide to run your Santiago app in production, please read our [Hosting
 
 * **Reliable** - Santiago is very simple and relies on Redis for its queueing system;
 * **Delivery Retry** - Santiago will retry up to 10 times to deliver your web hook (configurable ammount);
-* **Log-Friendly** - We log almost any operation we do in Santiago, so you can easily debug it.
-* **Easy to deploy** - Santiago comes with containers already exported to docker hub for every single of our successful builds. Just pick your choice!
+* **Log-Friendly** - We log almost any operation we do in Santiago, so you can easily debug it;
+* **Easy to deploy** - Santiago comes with containers already exported to docker hub for every single of our successful builds. Just pick your choice and it should just work;
+* **Easily support Sentry** - Set a configuration option to ensure errors get sent to [Sentry](https://docs.getsentry.com/on-premise/).
 
 ## Architecture
 
@@ -68,6 +69,10 @@ Whenever you add a new web hook to Santiago, it enqueues it with Redis. There ar
 If the web hook fail, it re-enqueues the message up to a max number of times.
 
 That's pretty much all there's to know about Santiago's architecture. Running redis is out of the scope of this document.
+
+## Using Sentry
+
+In your configuration file, just set `api.sentry.url` to your project's sentry URL. In the worker, pass --sentry-url `my-project-sentry-url` to ensure errors in the worker get sent to Sentry.
 
 ## The Stack
 

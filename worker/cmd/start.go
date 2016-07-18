@@ -18,6 +18,7 @@ var redisHost string
 var redisPort int
 var redisPass string
 var redisDB int
+var sentryURL string
 var debug bool
 
 // startCmd represents the start command
@@ -42,6 +43,7 @@ var startCmd = &cobra.Command{
 			logger,
 			debug,
 			5*time.Second,
+			sentryURL,
 		)
 
 		w.Start()
@@ -63,5 +65,6 @@ func init() {
 	startCmd.Flags().IntVarP(&redisPort, "redis-port", "p", 6379, "Queue Redis Port")
 	startCmd.Flags().StringVarP(&redisPass, "redis-pass", "s", "", "Queue Redis Password")
 	startCmd.Flags().IntVarP(&redisDB, "redis-db", "b", 0, "Queue Redis DB")
+	startCmd.Flags().StringVarP(&sentryURL, "sentry-url", "u", "", "Sentry URL to send errors to")
 	startCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Starts the worker in debug mode")
 }

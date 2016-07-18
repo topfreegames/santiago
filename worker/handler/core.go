@@ -15,6 +15,7 @@ import (
 
 	"gopkg.in/redis.v4"
 
+	"github.com/getsentry/raven-go"
 	"github.com/uber-go/zap"
 	"github.com/valyala/fasthttp"
 )
@@ -27,6 +28,7 @@ type Worker struct {
 	MaxAttempts  int
 	Client       *redis.Client
 	BlockTimeout time.Duration
+	SentryURL    string
 }
 
 //NewDefault returns a new worker with default options
@@ -34,7 +36,7 @@ func NewDefault(redisHost string, redisPort int, redisPassword string, redisDB i
 	return New(
 		"webhook",
 		redisHost, redisPort, redisPassword, redisDB,
-		10, logger, false, 5*time.Second,
+		10, logger, false, 5*time.Second, "",
 	)
 }
 
@@ -42,6 +44,7 @@ func NewDefault(redisHost string, redisPort int, redisPassword string, redisDB i
 func New(
 	queue string, redisHost string, redisPort int, redisPassword string, redisDB int,
 	maxAttempts int, logger zap.Logger, debug bool, blockTimeout time.Duration,
+	sentryURL string,
 ) *Worker {
 	w := &Worker{
 		Debug:        debug,
@@ -49,12 +52,18 @@ func New(
 		Queue:        queue,
 		MaxAttempts:  maxAttempts,
 		BlockTimeout: blockTimeout,
+		SentryURL:    sentryURL,
 	}
 	err := w.connectToRedis(redisHost, redisPort, redisPassword, redisDB)
 	if err != nil {
 		logger.Panic("Could not start worker due to error connecting to Redis...", zap.Error(err))
 	}
+	w.connectRaven()
 	return w
+}
+
+func (w *Worker) connectRaven() {
+	raven.SetDSN(w.SentryURL)
 }
 
 func (w *Worker) connectToRedis(redisHost string, redisPort int, redisPassword string, redisDB int) error {
@@ -133,7 +142,17 @@ func (w *Worker) requeueMessage(method, url, payload string, attempts int) error
 	)
 
 	if attempts > w.MaxAttempts {
-		l.Warn("Max attempts reached for message. Message will be discarded.")
+		msg := "Max attempts reached for message. Message will be discarded."
+		l.Warn(msg)
+		err := fmt.Errorf(msg)
+
+		tags := map[string]string{
+			"method":  method,
+			"url":     url,
+			"payload": payload,
+		}
+		raven.CaptureError(err, tags)
+
 		return nil
 	}
 
@@ -241,7 +260,7 @@ func (w *Worker) ProcessSubscription() error {
 
 	res, err := w.Client.BLPop(w.BlockTimeout, w.Queue).Result()
 	if err != nil {
-		if strings.HasSuffix("i/o timeout", err.Error()) {
+		if strings.HasSuffix("i/o timeout", err.Error()) || err.Error() == "redis: nil" {
 			return nil
 		}
 		l.Error("Worker failed to consume message from queue.", zap.Error(err))
@@ -273,11 +292,18 @@ func (w *Worker) Start() {
 	)
 
 	for {
-		l.Debug("Subscribing to next message...")
-		err := w.ProcessSubscription()
-		if err != nil {
-			l.Warn("Failed to retrieve messages from queue.", zap.Error(err))
-		}
-		time.Sleep(10 * time.Millisecond)
+		raven.CapturePanic(func() {
+			l.Debug("Subscribing to next message...")
+			err := w.ProcessSubscription()
+			if err != nil {
+				l.Warn("Failed to retrieve messages from queue.", zap.Error(err))
+				tags := map[string]string{
+					"queue":       w.Queue,
+					"maxAttempts": string(w.MaxAttempts),
+				}
+				raven.CaptureError(err, tags)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}, nil)
 	}
 }
