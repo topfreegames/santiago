@@ -191,6 +191,10 @@ func (a *App) initializeWebApp() {
 	a.WebApp = iris.New(c)
 
 	a.WebApp.Use(NewLoggerMiddleware(a.Logger))
+	a.WebApp.Use(&RecoveryMiddleware{OnError: a.onErrorHandler})
+	a.WebApp.Use(&VersionMiddleware{App: a})
+
+	a.WebApp.Use(NewLoggerMiddleware(a.Logger))
 	a.WebApp.Use(recovery.New(os.Stderr))
 
 	a.WebApp.Get("/healthcheck", HealthCheckHandler(a))
@@ -200,6 +204,7 @@ func (a *App) initializeWebApp() {
 	l.Info("Web App configured successfully")
 }
 
+//GetMessageCount returns the message count for the queue
 func (a *App) GetMessageCount() (int, error) {
 	queue := a.Queue
 
@@ -251,6 +256,16 @@ func (a *App) PublishHook(method, url string, payload string) error {
 	l.Info("Hook published successfully.", zap.Duration("PublishDuration", time.Now().Sub(start)))
 
 	return nil
+}
+
+func (a *App) onErrorHandler(err error, stack []byte) {
+	a.Errors.Update(1)
+	a.Logger.Error(
+		"Panic occurred.",
+		zap.String("source", "app"),
+		zap.String("panicText", err.Error()),
+		zap.String("stack", string(stack)),
+	)
 }
 
 //Start the application

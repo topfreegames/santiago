@@ -7,11 +7,42 @@
 package api
 
 import (
+	"runtime/debug"
 	"time"
 
 	"github.com/kataras/iris"
+	"github.com/topfreegames/santiago/metadata"
 	"github.com/uber-go/zap"
 )
+
+//VersionMiddleware automatically adds a version header to response
+type VersionMiddleware struct {
+	App *App
+}
+
+// Serve automatically adds a version header to response
+func (m *VersionMiddleware) Serve(c *iris.Context) {
+	c.SetHeader("SANTIAGO-VERSION", metadata.VERSION)
+	c.Next()
+}
+
+//RecoveryMiddleware recovers from errors in Iris
+type RecoveryMiddleware struct {
+	OnError func(error, []byte)
+}
+
+//Serve executes on error handler when errors happen
+func (r RecoveryMiddleware) Serve(ctx *iris.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			if r.OnError != nil {
+				r.OnError(err.(error), debug.Stack())
+			}
+			ctx.Panic()
+		}
+	}()
+	ctx.Next()
+}
 
 //LoggerMiddleware is responsible for logging to Zap all requests
 type LoggerMiddleware struct {
