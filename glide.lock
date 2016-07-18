@@ -1,5 +1,5 @@
-hash: 86fcf8c6b47439dac6e491f177952f8b06a452acdb22f091cfb8c5bde4932167
-updated: 2016-07-15T16:32:57.903157862-03:00
+hash: 197e5fd3ca668f3be77eeaa130f7651fcb4539572e965157f91200170d307f8b
+updated: 2016-07-18T10:40:26.245548507-03:00
 imports:
 - name: github.com/ajg/form
   version: 7ff89c75808766205bfa4411abb436c98c33eb5e
@@ -130,6 +130,8 @@ imports:
   version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
   subpackages:
   - difflib
+- name: github.com/rcrowley/go-metrics
+  version: cfa5a85e9f0abbdf1701b59082c36fc7bff10759
 - name: github.com/russross/blackfriday
   version: 1d6b8e9301e720b08a8938b8c25c018285885438
 - name: github.com/satori/go.uuid

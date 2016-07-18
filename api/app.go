@@ -19,6 +19,7 @@ import (
 	"github.com/iris-contrib/middleware/recovery"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/config"
+	"github.com/rcrowley/go-metrics"
 	"github.com/spf13/viper"
 	"github.com/uber-go/zap"
 )
@@ -31,6 +32,7 @@ type App struct {
 	WebApp        *iris.Framework
 	Client        *redis.Client
 	Queue         string
+	Errors        metrics.EWMA
 }
 
 //New opens a new channel connection
@@ -80,6 +82,13 @@ func (a *App) initialize() error {
 		"App initialized successfully.",
 		zap.Duration("appInitialization", time.Now().Sub(start)),
 	)
+
+	a.Errors = metrics.NewEWMA15()
+
+	go func(app *App) {
+		app.Errors.Tick()
+		time.Sleep(5 * time.Second)
+	}(a)
 
 	return nil
 }
@@ -185,9 +194,31 @@ func (a *App) initializeWebApp() {
 	a.WebApp.Use(recovery.New(os.Stderr))
 
 	a.WebApp.Get("/healthcheck", HealthCheckHandler(a))
+	a.WebApp.Get("/status", StatusHandler(a))
 	a.WebApp.Post("/hooks", AddHookHandler(a))
 
 	l.Info("Web App configured successfully")
+}
+
+func (a *App) GetMessageCount() (int, error) {
+	queue := a.Queue
+
+	l := a.Logger.With(
+		zap.String("operation", "GetMessageCount"),
+		zap.Object("queue", queue),
+	)
+
+	l.Debug("Getting message count...")
+
+	total, err := a.Client.LLen(queue).Result()
+	if err != nil {
+		return 0, err
+	}
+
+	messageCount := int(total)
+	l.Debug("Message count retrieved successfully.", zap.Int("messageCount", messageCount))
+
+	return messageCount, nil
 }
 
 //PublishHook sends a hook to the queue
