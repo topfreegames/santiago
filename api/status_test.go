@@ -67,7 +67,7 @@ var _ = Describe("Status Handler", func() {
 			Expect(res.Body().Raw()).NotTo(BeEmpty())
 		})
 
-		Expect(runtime.Seconds()).Should(BeNumerically("<", 0.01), "Status shouldn't take too long.")
+		Expect(runtime.Seconds()).Should(BeNumerically("<", 0.02), "Status shouldn't take too long.")
 	}, 200)
 
 })
