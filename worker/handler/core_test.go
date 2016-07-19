@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -24,6 +25,14 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+type mockClock struct {
+	currentTime int64
+}
+
+func (m *mockClock) Now() int64 {
+	return m.currentTime
+}
 
 //getTestRedisConn returns a connection to the test redis server
 func getTestRedisConn() (*redis.Client, error) {
@@ -142,7 +151,7 @@ var _ = Describe("Santiago Worker", func() {
 				queue,
 				"127.0.0.1", 57575, "", 0,
 				10, logger, true, 10*time.Millisecond,
-				"",
+				"", 10, &RealClock{},
 			)
 
 			err := pushHook(
@@ -170,7 +179,60 @@ var _ = Describe("Santiago Worker", func() {
 			worker := New(
 				queue,
 				"127.0.0.1", 57575, "", 0,
-				10, logger, true, time.Millisecond, "",
+				10, logger, true, time.Millisecond, "", 10, &RealClock{},
+			)
+
+			err := pushHook(
+				testClient, queue, "POST",
+				fmt.Sprintf("http://localhost:52525%s", hookURL),
+				map[string]interface{}{
+					"qwe": 123,
+				},
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			before := time.Now().UnixNano()
+			err = worker.ProcessSubscription()
+			Expect(err).To(HaveOccurred())
+
+			res, err := testClient.LRange(queue, 0, 1).Result()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(res).To(HaveLen(1))
+
+			var hook map[string]interface{}
+			err = json.Unmarshal([]byte(res[0]), &hook)
+			Expect(err).NotTo(HaveOccurred())
+
+			ms := 1000000
+			Expect(hook["attempts"]).To(BeEquivalentTo(1))
+			Expect(hook["backoff"]).To(BeNumerically(">", before+int64(9*ms)))
+			Expect(hook["method"]).To(BeEquivalentTo("POST"))
+			Expect(hook["url"]).To(BeEquivalentTo("http://localhost:52525/webhook-retry"))
+			Expect(hook["payload"]).To(BeEquivalentTo("{\"qwe\":123}"))
+
+			responses := startRouteHandler([]string{hookURL}, 52525)
+
+			time.Sleep(50 * time.Millisecond)
+
+			err = worker.ProcessSubscription()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(*responses).To(HaveLen(1))
+
+			resp := (*responses)[0]["payload"].(map[string]interface{})
+			Expect(int(resp["qwe"].(float64))).To(Equal(123))
+		})
+
+		It("should requeue with exponential backoff", func() {
+			hookURL := "/webhook-backoff"
+			queue := uuid.NewV4().String()
+			clock := &mockClock{}
+
+			worker := New(
+				queue,
+				"127.0.0.1", 57575, "", 0,
+				15, logger, true, time.Millisecond, "", 10, clock,
 			)
 
 			err := pushHook(
@@ -188,27 +250,37 @@ var _ = Describe("Santiago Worker", func() {
 			res, err := testClient.LRange(queue, 0, 1).Result()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(res).To(HaveLen(1))
-
 			var hook map[string]interface{}
 			err = json.Unmarshal([]byte(res[0]), &hook)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(hook["attempts"]).To(BeEquivalentTo(1))
-			Expect(hook["method"]).To(BeEquivalentTo("POST"))
-			Expect(hook["url"]).To(BeEquivalentTo("http://localhost:52525/webhook-retry"))
-			Expect(hook["payload"]).To(BeEquivalentTo("{\"qwe\":123}"))
 
-			responses := startRouteHandler([]string{hookURL}, 52525)
+			ms := int64(1000000)
+			backoff := int64(hook["backoff"].(float64))
+			Expect(backoff).To(BeNumerically(">", 10*ms))
 
-			err = worker.ProcessSubscription()
-			Expect(err).NotTo(HaveOccurred())
+			msg := fmt.Sprintf(
+				"Expected time to be lesser than %v, but got %v",
+				21*ms, backoff,
+			)
+			Expect(backoff).To(BeNumerically("<", int64(21*ms)), msg)
 
-			Expect(*responses).To(HaveLen(1))
+			for i := 2; i < 5; i++ {
+				By(fmt.Sprintf("Backoff %d", i))
+				power := int64(math.Pow(2, float64(i)))
+				clock.currentTime = 10 * int64(power) * ms
+				err = worker.ProcessSubscription()
+				Expect(err).To(HaveOccurred())
 
-			resp := (*responses)[0]["payload"].(map[string]interface{})
-			Expect(int(resp["qwe"].(float64))).To(Equal(123))
+				res, err = testClient.LRange(queue, 0, 1).Result()
+				Expect(err).NotTo(HaveOccurred())
+
+				err = json.Unmarshal([]byte(res[0]), &hook)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(hook["backoff"]).To(BeNumerically(">", 10*ms*power))
+			}
 		})
-
 	})
 })

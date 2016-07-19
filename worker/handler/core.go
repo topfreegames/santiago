@@ -9,6 +9,7 @@ package worker
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -20,15 +21,30 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+//Clock represents a clock to be used by the worker
+type Clock interface {
+	Now() int64
+}
+
+//RealClock uses the machine clock to return time
+type RealClock struct{}
+
+//Now returns time.Now()
+func (r *RealClock) Now() int64 {
+	return time.Now().UnixNano()
+}
+
 //Worker is a worker implementation that keeps processing webhooks
 type Worker struct {
-	Debug        bool
-	Queue        string
-	Logger       zap.Logger
-	MaxAttempts  int
-	Client       *redis.Client
-	BlockTimeout time.Duration
-	SentryURL    string
+	Debug             bool
+	Queue             string
+	Logger            zap.Logger
+	MaxAttempts       int
+	Client            *redis.Client
+	BlockTimeout      time.Duration
+	SentryURL         string
+	BackoffIntervalMs int
+	Clock             Clock
 }
 
 //NewDefault returns a new worker with default options
@@ -36,7 +52,8 @@ func NewDefault(redisHost string, redisPort int, redisPassword string, redisDB i
 	return New(
 		"webhook",
 		redisHost, redisPort, redisPassword, redisDB,
-		10, logger, false, 5*time.Second, "",
+		10, logger, false, 5*time.Second, "", 5000,
+		&RealClock{},
 	)
 }
 
@@ -44,15 +61,17 @@ func NewDefault(redisHost string, redisPort int, redisPassword string, redisDB i
 func New(
 	queue string, redisHost string, redisPort int, redisPassword string, redisDB int,
 	maxAttempts int, logger zap.Logger, debug bool, blockTimeout time.Duration,
-	sentryURL string,
+	sentryURL string, backoffIntervalMs int, clock Clock,
 ) *Worker {
 	w := &Worker{
-		Debug:        debug,
-		Logger:       logger,
-		Queue:        queue,
-		MaxAttempts:  maxAttempts,
-		BlockTimeout: blockTimeout,
-		SentryURL:    sentryURL,
+		Debug:             debug,
+		Logger:            logger,
+		Queue:             queue,
+		MaxAttempts:       maxAttempts,
+		BlockTimeout:      blockTimeout,
+		SentryURL:         sentryURL,
+		BackoffIntervalMs: backoffIntervalMs,
+		Clock:             clock,
 	}
 	err := w.connectToRedis(redisHost, redisPort, redisPassword, redisDB)
 	if err != nil {
@@ -134,7 +153,7 @@ func (w *Worker) DoRequest(method, url, payload string) (int, string, error) {
 	return status, body, nil
 }
 
-func (w *Worker) requeueMessage(method, url, payload string, attempts int) error {
+func (w *Worker) requeueMessage(method, url, payload string, attempts int, incrementAttempts bool) error {
 	l := w.Logger.With(
 		zap.String("operation", "requeueMessage"),
 		zap.String("method", method),
@@ -156,27 +175,44 @@ func (w *Worker) requeueMessage(method, url, payload string, attempts int) error
 		return nil
 	}
 
-	attempts++
+	if incrementAttempts {
+		attempts++
+	}
 
-	l.Debug("Requeueing message.", zap.Int("attempt", attempts), zap.String("payload", payload))
+	millisecond := int64(1000000)
+	power := int64(math.Pow(2, float64(attempts)))
+	backoffTimestamp := w.Clock.Now() + (int64(w.BackoffIntervalMs) * power * millisecond)
 
 	data := map[string]interface{}{
 		"method":   method,
 		"url":      url,
 		"payload":  payload,
 		"attempts": attempts,
+		"backoff":  backoffTimestamp,
 	}
 	dataJSON, _ := json.Marshal(data)
 
 	start := time.Now()
 
-	l.Debug("Re-enqueueing hook...")
+	if incrementAttempts {
+		l.Debug("Re-enqueueing hook...")
+	} else {
+		l.Debug("Ignoring hook...")
+	}
 	_, err := w.Client.RPush(w.Queue, dataJSON).Result()
 	if err != nil {
-		l.Error("Re-enqueueing hook failed.", zap.Error(err))
+		if incrementAttempts {
+			l.Error("Re-enqueueing hook failed.", zap.Error(err))
+		} else {
+			l.Error("Ignoring hook failed.", zap.Error(err))
+		}
 		return err
 	}
-	l.Info("Hook re-enqueue succeeded.", zap.Duration("ReEnqueueDuration", time.Now().Sub(start)))
+	if incrementAttempts {
+		l.Info("Hook re-enqueue succeeded.", zap.Duration("ReEnqueueDuration", time.Now().Sub(start)))
+	} else {
+		l.Info("Hook ignore succeeded.", zap.Duration("IgnoreDuration", time.Now().Sub(start)))
+	}
 
 	return nil
 }
@@ -217,6 +253,24 @@ func (w *Worker) Handle(msg map[string]interface{}) error {
 		payload = msg["payload"].(string)
 	}
 
+	timestamp := w.Clock.Now()
+	if msg["backoff"] != nil {
+		if int64(msg["backoff"].(float64)) > timestamp {
+			bkl := l.With(
+				zap.Int64("backoff", int64(msg["backoff"].(float64))),
+				zap.Int64("timestamp", timestamp),
+			)
+			bkl.Debug("Re-enqueueing message with backoff.")
+			err := w.requeueMessage(method, url, payload, attempts, false)
+			if err != nil {
+				bkl.Error("Could not re-enqueue hook with backoff.", zap.Error(err))
+				return err
+			}
+			bkl.Debug("Message re-enqueued successfully.")
+			return nil
+		}
+	}
+
 	l.Debug(
 		"Performing request...",
 		zap.String("payload", payload),
@@ -225,7 +279,7 @@ func (w *Worker) Handle(msg map[string]interface{}) error {
 	status, _, err := w.DoRequest(method, url, payload)
 	if err != nil {
 		l.Error("Could not process hook, trying again later.", zap.Error(err), zap.Int("attempts", attempts))
-		err2 := w.requeueMessage(method, url, payload, attempts)
+		err2 := w.requeueMessage(method, url, payload, attempts, true)
 		if err2 != nil {
 			l.Error("Could not re-enqueue hook.", zap.Error(err2))
 		}
@@ -239,7 +293,7 @@ func (w *Worker) Handle(msg map[string]interface{}) error {
 			zap.Error(err),
 			zap.Int("attempts", attempts),
 		)
-		err2 := w.requeueMessage(method, url, payload, attempts)
+		err2 := w.requeueMessage(method, url, payload, attempts, true)
 		if err2 != nil {
 			l.Error("Could not re-enqueue hook.", zap.Error(err2))
 		}

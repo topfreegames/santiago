@@ -78,6 +78,7 @@ type MockLogger struct {
 	DefaultFields []zap.Field
 	Messages      []map[string]interface{}
 	Parent        *MockLogger
+	WriteToStdOut bool
 }
 
 //Level returns the level
@@ -97,6 +98,7 @@ func (m *MockLogger) With(fields ...zap.Field) zap.Logger {
 		DefaultFields: append(m.DefaultFields, fields...),
 		Messages:      m.Messages,
 		Parent:        m,
+		WriteToStdOut: m.WriteToStdOut,
 	}
 }
 
@@ -133,6 +135,20 @@ func (m *MockLogger) Log(level zap.Level, message string, fields ...zap.Field) {
 		"message": message,
 		"fields":  append(append([]zap.Field{}, m.DefaultFields...), fields...),
 	})
+	if m.WriteToStdOut {
+		fieldsRepr := []string{}
+		mockKV := NewMockKV()
+		for _, field := range m.DefaultFields {
+			field.AddTo(mockKV)
+		}
+		for _, field := range fields {
+			field.AddTo(mockKV)
+		}
+		for k, v := range mockKV.Values {
+			fieldsRepr = append(fieldsRepr, fmt.Sprintf("\t%s=%v", k, v))
+		}
+		fmt.Printf("[%v] %s\n%s\n", level, message, strings.Join(fieldsRepr, "\n"))
+	}
 }
 
 //Debug debugs
