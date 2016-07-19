@@ -58,6 +58,7 @@ When you decide to run your Santiago app in production, please read our [Hosting
 
 * **Reliable** - Santiago is very simple and relies on Redis for its queueing system;
 * **Delivery Retry** - Santiago will retry up to 10 times to deliver your web hook (configurable ammount);
+* **Exponential Back-off** - After a failed web hook attempt, Santiago will wait some time before trying again. The time between attempts grows exponentially to allow you to react to it;
 * **Log-Friendly** - We log almost any operation we do in Santiago, so you can easily debug it;
 * **Easy to deploy** - Santiago comes with containers already exported to docker hub for every single of our successful builds. Just pick your choice and it should just work;
 * **Easily support Sentry** - Set a configuration option to ensure errors get sent to [Sentry](https://docs.getsentry.com/on-premise/).

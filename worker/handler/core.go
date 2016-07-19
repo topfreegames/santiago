@@ -43,7 +43,7 @@ type Worker struct {
 	Client            *redis.Client
 	BlockTimeout      time.Duration
 	SentryURL         string
-	BackoffIntervalMs int
+	BackoffIntervalMs int64
 	Clock             Clock
 }
 
@@ -52,7 +52,7 @@ func NewDefault(redisHost string, redisPort int, redisPassword string, redisDB i
 	return New(
 		"webhook",
 		redisHost, redisPort, redisPassword, redisDB,
-		10, logger, false, 5*time.Second, "", 5000,
+		15, logger, false, 5*time.Second, "", 5000,
 		&RealClock{},
 	)
 }
@@ -61,7 +61,7 @@ func NewDefault(redisHost string, redisPort int, redisPassword string, redisDB i
 func New(
 	queue string, redisHost string, redisPort int, redisPassword string, redisDB int,
 	maxAttempts int, logger zap.Logger, debug bool, blockTimeout time.Duration,
-	sentryURL string, backoffIntervalMs int, clock Clock,
+	sentryURL string, backoffIntervalMs int64, clock Clock,
 ) *Worker {
 	w := &Worker{
 		Debug:             debug,

@@ -7,4 +7,4 @@
 package metadata
 
 //VERSION identifies current version of the application
-var VERSION = "0.3.2"
+var VERSION = "0.3.3"
