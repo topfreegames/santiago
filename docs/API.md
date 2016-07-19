@@ -52,7 +52,7 @@ Santiago API
 
 ## WebHook Routes
 
-  ### Create Game
+  ### Dispatch webhook
   `POST /hooks`
 
   Creates a new webhook to be dispatched. This method takes Method and URL as querystring parameters and the payload to send to the webhook as the body.
