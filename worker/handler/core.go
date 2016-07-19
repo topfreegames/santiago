@@ -91,6 +91,7 @@ func (w *Worker) connectToRedis(redisHost string, redisPort int, redisPassword s
 		zap.String("redisHost", redisHost),
 		zap.Int("redisPort", redisPort),
 		zap.Int("redisDB", redisDB),
+		zap.Bool("hasPassword", redisPassword != ""),
 	)
 
 	l.Debug("Connecting to Redis...")
@@ -337,7 +338,7 @@ func (w *Worker) ProcessSubscription() error {
 	return nil
 }
 
-//Start a new worker
+//Start a new worker with the given params
 func (w *Worker) Start() {
 	l := w.Logger.With(
 		zap.String("operation", "Subscribe"),
