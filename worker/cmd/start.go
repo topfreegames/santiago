@@ -29,7 +29,7 @@ var startCmd = &cobra.Command{
 	Short: "starts a worker",
 	Long:  `starts a new worker listening for webhooks`,
 	Run: func(cmd *cobra.Command, args []string) {
-		level := zap.WarnLevel
+		level := zap.InfoLevel
 		if debug {
 			level = zap.DebugLevel
 		}

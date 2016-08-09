@@ -24,7 +24,7 @@ var startCmd = &cobra.Command{
 	Short: "starts the API",
 	Long:  `starts Santiago API.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		ll := zap.WarnLevel
+		ll := zap.InfoLevel
 		if isDebug {
 			ll = zap.DebugLevel
 		}
