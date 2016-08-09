@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 
 	"gopkg.in/redis.v4"
@@ -258,6 +257,7 @@ func (w *Worker) Handle(msg map[string]interface{}) error {
 	if msg["backoff"] != nil {
 		if int64(msg["backoff"].(float64)) > timestamp {
 			bkl := l.With(
+				zap.Int("attempts", attempts),
 				zap.Int64("backoff", int64(msg["backoff"].(float64))),
 				zap.Int64("timestamp", timestamp),
 			)
@@ -267,7 +267,7 @@ func (w *Worker) Handle(msg map[string]interface{}) error {
 				bkl.Error("Could not re-enqueue hook with backoff.", zap.Error(err))
 				return err
 			}
-			bkl.Debug("Message re-enqueued successfully.")
+			bkl.Info("Message re-enqueued successfully.")
 			return nil
 		}
 	}
@@ -313,9 +313,10 @@ func (w *Worker) ProcessSubscription() error {
 		zap.Int("maxAttempts", w.MaxAttempts),
 	)
 
-	res, err := w.Client.BLPop(w.BlockTimeout, w.Queue).Result()
+	res, err := w.Client.LPop(w.Queue).Result()
 	if err != nil {
-		if strings.HasSuffix("i/o timeout", err.Error()) || err.Error() == "redis: nil" {
+		if err.Error() == "redis: nil" {
+			l.Info("No hooks to be processed.")
 			return nil
 		}
 		l.Error("Worker failed to consume message from queue.", zap.Error(err))
@@ -323,7 +324,7 @@ func (w *Worker) ProcessSubscription() error {
 	}
 
 	var msg map[string]interface{}
-	err = json.Unmarshal([]byte(res[1]), &msg)
+	err = json.Unmarshal([]byte(res), &msg)
 	if err != nil {
 		l.Error("Worker failed to deserialize message from queue.", zap.Error(err))
 		return err
@@ -348,7 +349,7 @@ func (w *Worker) Start() {
 
 	for {
 		raven.CapturePanic(func() {
-			l.Debug("Subscribing to next message...")
+			l.Info("Subscribing to next message...")
 			err := w.ProcessSubscription()
 			if err != nil {
 				l.Warn("Failed to retrieve messages from queue.", zap.Error(err))
@@ -358,7 +359,7 @@ func (w *Worker) Start() {
 				}
 				raven.CaptureError(err, tags)
 			}
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 		}, nil)
 	}
 }

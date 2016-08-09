@@ -137,6 +137,12 @@ docker-build:
 docker-run:
 	@docker run -i -t --rm -e SNT_API_REDIS_HOST=$(MYIP) -e SNT_API_REDIS_PORT=$(LOCAL_REDIS_PORT) -p 8080:8080 santiago
 
+docker-worker-build:
+	@docker build -t santiago-worker -f ./WorkerDockerfile .
+
+docker-worker-run:
+	@docker run -i -t --rm -e SNT_API_REDIS_HOST=$(MYIP) -e SNT_API_REDIS_PORT=$(LOCAL_REDIS_PORT) santiago-worker
+
 docker-dev-build:
 	@docker build -t santiago-dev -f ./DevDockerfile .
 

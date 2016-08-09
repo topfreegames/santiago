@@ -15,6 +15,13 @@ docker push tfgco/santiago:$VERSION
 docker tag santiago:latest tfgco/santiago:latest
 docker push tfgco/santiago
 
+docker tag santiago-worker:latest tfgco/santiago-worker:$VERSION.$TRAVIS_BUILD_NUMBER
+docker push tfgco/santiago-worker:$VERSION.$TRAVIS_BUILD_NUMBER
+docker tag santiago-worker:latest tfgco/santiago-worker:$VERSION
+docker push tfgco/santiago-worker:$VERSION
+docker tag santiago-worker:latest tfgco/santiago-worker:latest
+docker push tfgco/santiago-worker
+
 docker tag santiago-dev:latest tfgco/santiago-dev:$VERSION.$TRAVIS_BUILD_NUMBER
 docker push tfgco/santiago-dev:$VERSION.$TRAVIS_BUILD_NUMBER
 docker tag santiago-dev:latest tfgco/santiago-dev:$VERSION
