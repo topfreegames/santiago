@@ -5,6 +5,7 @@ VERSION=$(cat ./metadata/version.go | grep "var VERSION" | awk ' { print $4 } ' 
 cp ./config/default.yaml ./dev
 
 docker build -t santiago .
+docker build -t santiago-worker -f ./WorkerDockerfile .
 docker build -t santiago-dev -f ./DevDockerfile .
 docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 
