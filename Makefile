@@ -131,6 +131,8 @@ test-redis-shutdown:
 test-redis-clear:
 	@rm -rf "/tmp/redis_test_santiago*"
 
+docker-rebuild: cross docker-worker-build docker-build
+
 docker-build:
 	@docker build -t santiago .
 

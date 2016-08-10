@@ -316,7 +316,7 @@ func (w *Worker) ProcessSubscription() error {
 	res, err := w.Client.LPop(w.Queue).Result()
 	if err != nil {
 		if err.Error() == "redis: nil" {
-			l.Info("No hooks to be processed.")
+			l.Debug("No hooks to be processed.")
 			return nil
 		}
 		l.Error("Worker failed to consume message from queue.", zap.Error(err))
@@ -348,18 +348,21 @@ func (w *Worker) Start() {
 	)
 
 	for {
-		raven.CapturePanic(func() {
-			l.Info("Subscribing to next message...")
-			err := w.ProcessSubscription()
-			if err != nil {
-				l.Warn("Failed to retrieve messages from queue.", zap.Error(err))
-				tags := map[string]string{
-					"queue":       w.Queue,
-					"maxAttempts": string(w.MaxAttempts),
+		l.Info("Subscribing to next message...")
+
+		for i := 0; i < 50; i++ {
+			raven.CapturePanic(func() {
+				err := w.ProcessSubscription()
+				if err != nil {
+					l.Warn("Failed to retrieve messages from queue.", zap.Error(err))
+					tags := map[string]string{
+						"queue":       w.Queue,
+						"maxAttempts": string(w.MaxAttempts),
+					}
+					raven.CaptureError(err, tags)
 				}
-				raven.CaptureError(err, tags)
-			}
-			time.Sleep(100 * time.Millisecond)
-		}, nil)
+				time.Sleep(50 * time.Millisecond)
+			}, nil)
+		}
 	}
 }
