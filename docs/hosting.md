@@ -12,7 +12,8 @@ Santiago uses Redis to publish hooks to and to listen for incoming hooks. The co
 * `SNT_API_REDIS_HOST` - Redis host to publish hooks to;
 * `SNT_API_REDIS_PORT` - Redis port to publish hooks to;
 * `SNT_API_REDIS_PASSWORD` - Password of the Redis Server to listen for hooks;
-* `SNT_API_REDIS_DB` - DB Number of the Redis Server to listen for hooks.
+* `SNT_API_REDIS_DB` - DB Number of the Redis Server to listen for hooks;
+* `SNT_API_USE_FAST_HTTP` - Whether to use fasthttp for echo engine or not. This env should be either "--fast" or "".
 
 ## Binaries
 
