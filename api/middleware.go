@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/getsentry/raven-go"
-	"github.com/heynemann/myth/metadata"
 	"github.com/labstack/echo"
+	"github.com/topfreegames/santiago/metadata"
 	"github.com/uber-go/zap"
 )
 

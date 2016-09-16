@@ -14,7 +14,7 @@ Let's get Santiago up and running in your machine in a few steps. For this quick
 First let's start a server that will receive our webhook. You can use anything you want for this, but we'll run an echo server in node.js:
 
     var http = require('http');
-     
+
     http.createServer(function(request,response){
       response.writeHead(200);
       request.on('data',function(message){
@@ -79,7 +79,7 @@ In your configuration file, just set `api.sentry.url` to your project's sentry U
 
 For the devs out there, our code is in Go, but more specifically:
 
-* Web Framework - [Iris](https://www.gitbook.com/book/kataras/iris/details) based on the insanely fast [FastHTTP](https://github.com/valyala/fasthttp);
+* Web Framework - [echo](https://github.com/labstack/echo) based on the insanely fast [FastHTTP](https://github.com/valyala/fasthttp);
 * Queueing - [Redis](http://redis.io).
 
 ## Who's Using it
