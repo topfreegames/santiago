@@ -20,7 +20,7 @@ func I(logger zap.Logger, message string, callback ...func(l CM)) {
 
 //W is a info logger
 func W(logger zap.Logger, message string, callback ...func(l CM)) {
-	log(logger, zap.InfoLevel, message, callback...)
+	log(logger, zap.WarnLevel, message, callback...)
 }
 
 //E is a info logger
