@@ -126,7 +126,7 @@ func (m *MockLogger) Check(level zap.Level, msg string) *zap.CheckedMessage {
 		"fields":  append([]zap.Field{}, m.DefaultFields...),
 	})
 
-	return nil
+	return zap.NewCheckedMessage(m, level, msg)
 }
 
 //StubTime stubs time
