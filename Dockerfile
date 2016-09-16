@@ -27,5 +27,6 @@ ENV SNT_API_REDIS_PORT 6379
 ENV SNT_API_REDIS_PASSWORD ""
 ENV SNT_API_REDIS_DB 0
 ENV SNT_API_SENTRY_URL ""
+ENV SNT_USE_FAST_HTTP "--fast"
 
-ENTRYPOINT /go/bin/snt start --host 0.0.0.0 --port 8080 --config /home/santiago/default.yaml
+ENTRYPOINT /go/bin/snt start --host 0.0.0.0 $SNT_USE_FAST_HTTP --port 8080 --config /home/santiago/default.yaml
