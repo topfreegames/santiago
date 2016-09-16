@@ -11,19 +11,22 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo"
+	"github.com/topfreegames/santiago/log"
 	"github.com/uber-go/zap"
 )
 
 // StatusHandler is the handler responsible for validating that the app is still up
 func StatusHandler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
-		app.Logger.Debug("Starting status...")
+		log.D(app.Logger, "Starting status...")
 
 		messageCount, err := app.GetMessageCount()
 
 		if err != nil {
 			msg := "Status failed"
-			app.Logger.Error(msg, zap.Error(err))
+			log.E(app.Logger, msg, func(cm log.CM) {
+				cm.Write(zap.Error(err))
+			})
 			return FailWith(500, msg, c)
 		}
 
@@ -34,11 +37,13 @@ func StatusHandler(app *App) func(c echo.Context) error {
 
 		if err != nil {
 			msg := "Status failed"
-			app.Logger.Error(msg, zap.Error(err))
+			log.E(app.Logger, msg, func(cm log.CM) {
+				cm.Write(zap.Error(err))
+			})
 			return FailWith(500, msg, c)
 		}
 
-		app.Logger.Debug("Status worked successfully.")
+		log.D(app.Logger, "Status worked successfully.")
 		return c.String(http.StatusOK, string(items))
 	}
 }

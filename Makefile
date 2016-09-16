@@ -29,8 +29,8 @@ setup-docs:
 build:
 	@go build $(PACKAGES)
 	@mkdir -p bin/
-	@go build -o ./bin/snt-worker ./worker/main.go 
-	@go build -o ./bin/snt ./main.go 
+	@go build -o ./bin/snt-worker ./worker/main.go
+	@go build -o ./bin/snt ./main.go
 
 cross: cross-linux cross-darwin
 
@@ -67,7 +67,7 @@ run:
 	@go run main.go start -p 3333 -d -c ./config/local.yaml
 
 run-prod:
-	@./bin/snt-$(OS)-x86_64 start -p 3333 -c ./config/local.yaml
+	@./bin/snt-$(OS)-x86_64 start -q --fast -p 3333 -c ./config/local.yaml
 
 services: redis
 

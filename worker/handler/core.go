@@ -16,6 +16,7 @@ import (
 	"gopkg.in/redis.v4"
 
 	"github.com/getsentry/raven-go"
+	"github.com/topfreegames/santiago/log"
 	"github.com/uber-go/zap"
 	"github.com/valyala/fasthttp"
 )
@@ -93,7 +94,7 @@ func (w *Worker) connectToRedis(redisHost string, redisPort int, redisPassword s
 		zap.Bool("hasPassword", redisPassword != ""),
 	)
 
-	l.Debug("Connecting to Redis...")
+	log.D(l, "Connecting to Redis...")
 	client := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", redisHost, redisPort),
 		Password: redisPassword,
@@ -106,7 +107,9 @@ func (w *Worker) connectToRedis(redisHost string, redisPort int, redisPassword s
 		l.Error("Could not connect to redis.", zap.Error(err))
 		return err
 	}
-	l.Info("Connected to Redis successfully.", zap.Duration("connection", time.Now().Sub(start)))
+	log.I(l, "Connected to Redis successfully.", func(cm log.CM) {
+		cm.Write(zap.Duration("connection", time.Now().Sub(start)))
+	})
 
 	w.Client = client
 	return nil
@@ -143,11 +146,15 @@ func (w *Worker) DoRequest(method, url, payload string) (int, string, error) {
 
 	status := resp.StatusCode()
 	body := string(resp.Body())
-	l.Info(
+	log.I(l,
 		"Request hook finished without error.",
-		zap.Int("statusCode", status),
-		zap.String("body", body),
-		zap.Duration("requestDuration", time.Now().Sub(start)),
+		func(cm log.CM) {
+			cm.Write(
+				zap.Int("statusCode", status),
+				zap.String("body", body),
+				zap.Duration("requestDuration", time.Now().Sub(start)),
+			)
+		},
 	)
 
 	return status, body, nil
@@ -195,9 +202,9 @@ func (w *Worker) requeueMessage(method, url, payload string, attempts int, incre
 	start := time.Now()
 
 	if incrementAttempts {
-		l.Debug("Re-enqueueing hook...")
+		log.D(l, "Re-enqueueing hook...")
 	} else {
-		l.Debug("Ignoring hook...")
+		log.D(l, "Ignoring hook...")
 	}
 	_, err := w.Client.RPush(w.Queue, dataJSON).Result()
 	if err != nil {
@@ -209,9 +216,13 @@ func (w *Worker) requeueMessage(method, url, payload string, attempts int, incre
 		return err
 	}
 	if incrementAttempts {
-		l.Info("Hook re-enqueue succeeded.", zap.Duration("ReEnqueueDuration", time.Now().Sub(start)))
+		log.I(l, "Hook re-enqueue succeeded.", func(cm log.CM) {
+			cm.Write(zap.Duration("ReEnqueueDuration", time.Now().Sub(start)))
+		})
 	} else {
-		l.Debug("Hook ignore succeeded.", zap.Duration("IgnoreDuration", time.Now().Sub(start)))
+		log.D(l, "Hook ignore succeeded.", func(cm log.CM) {
+			cm.Write(zap.Duration("IgnoreDuration", time.Now().Sub(start)))
+		})
 	}
 
 	return nil
@@ -261,22 +272,20 @@ func (w *Worker) Handle(msg map[string]interface{}) error {
 				zap.Int64("backoff", int64(msg["backoff"].(float64))),
 				zap.Int64("timestamp", timestamp),
 			)
-			bkl.Debug("Re-enqueueing message with backoff.")
+			log.D(bkl, "Re-enqueueing message with backoff.")
 			err := w.requeueMessage(method, url, payload, attempts, false)
 			if err != nil {
 				bkl.Error("Could not re-enqueue hook with backoff.", zap.Error(err))
 				return err
 			}
-			bkl.Debug("Message re-enqueued successfully.")
+			log.D(bkl, "Message re-enqueued successfully.")
 			return nil
 		}
 	}
 
-	l.Debug(
-		"Performing request...",
-		zap.String("payload", payload),
-		zap.Int("attempts", attempts),
-	)
+	log.D(l, "Performing request...", func(cm log.CM) {
+		cm.Write(zap.String("payload", payload), zap.Int("attempts", attempts))
+	})
 	status, _, err := w.DoRequest(method, url, payload)
 	if err != nil {
 		l.Error("Could not process hook, trying again later.", zap.Error(err), zap.Int("attempts", attempts))
@@ -301,7 +310,7 @@ func (w *Worker) Handle(msg map[string]interface{}) error {
 		return err
 	}
 
-	l.Info("Webhook processed successfully.")
+	log.I(l, "Webhook processed successfully.")
 	return nil
 }
 
@@ -316,7 +325,7 @@ func (w *Worker) ProcessSubscription() error {
 	res, err := w.Client.LPop(w.Queue).Result()
 	if err != nil {
 		if err.Error() == "redis: nil" {
-			l.Debug("No hooks to be processed.")
+			log.D(l, "No hooks to be processed.")
 			return nil
 		}
 		l.Error("Worker failed to consume message from queue.", zap.Error(err))
@@ -335,7 +344,7 @@ func (w *Worker) ProcessSubscription() error {
 		return err
 	}
 
-	l.Debug("Worker consumed message successfully.")
+	log.D(l, "Worker consumed message successfully.")
 	return nil
 }
 
@@ -348,7 +357,7 @@ func (w *Worker) Start() {
 	)
 
 	for {
-		l.Debug("Subscribing to next message...")
+		log.D(l, "Subscribing to next message...")
 
 		for i := 0; i < 50; i++ {
 			raven.CapturePanic(func() {

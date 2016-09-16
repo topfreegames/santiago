@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo"
+	"github.com/topfreegames/santiago/log"
 	"github.com/uber-go/zap"
 )
 
@@ -32,7 +33,7 @@ func AddHookHandler(app *App) func(c echo.Context) error {
 			return FailWith(http.StatusBadRequest, "Both 'method' and 'url' must be provided as querystring parameters", c)
 		}
 
-		l.Debug("Sending hook to queue...")
+		log.D(l, "Sending hook to queue...")
 		payload, err := GetRequestBody(c)
 		if err != nil {
 			msg := "Failed to retrieve payload in request body."
@@ -46,7 +47,7 @@ func AddHookHandler(app *App) func(c echo.Context) error {
 			return FailWith(500, fmt.Sprintf("Hook failed to be published (%s).", err.Error()), c)
 		}
 
-		l.Debug("Hook sent to queue successfully...")
+		log.D(l, "Hook sent to queue successfully...")
 		return c.String(http.StatusOK, "OK")
 	}
 }

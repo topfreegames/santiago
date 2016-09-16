@@ -23,6 +23,7 @@ import (
 	"github.com/labstack/echo/engine/standard"
 	"github.com/rcrowley/go-metrics"
 	"github.com/spf13/viper"
+	"github.com/topfreegames/santiago/log"
 	"github.com/uber-go/zap"
 )
 
@@ -71,7 +72,7 @@ func (a *App) initialize() error {
 		zap.String("operation", "initialize"),
 	)
 	start := time.Now()
-	l.Debug("Initializing app...")
+	log.D(l, "Initializing app...")
 
 	a.setDefaultConfigurationOptions()
 
@@ -80,7 +81,10 @@ func (a *App) initialize() error {
 		return err
 	}
 
-	a.connectToRedis()
+	err = a.connectToRedis()
+	if err != nil {
+		return err
+	}
 	a.connectRaven()
 	a.initializeWebApp()
 
@@ -165,7 +169,7 @@ func (a *App) connectToRedis() error {
 		zap.Int("redisDB", redisDB),
 	)
 
-	l.Debug("Connecting to Redis...")
+	log.D(l, "Connecting to Redis...")
 	client := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", redisHost, redisPort),
 		Password: redisPass,
@@ -178,7 +182,9 @@ func (a *App) connectToRedis() error {
 		l.Error("Could not connect to redis.", zap.Error(err))
 		return err
 	}
-	l.Info("Connected to Redis successfully.", zap.Duration("connection", time.Now().Sub(start)))
+	log.I(l, "Connected to Redis successfully.", func(cm log.CM) {
+		cm.Write(zap.Duration("connection", time.Now().Sub(start)))
+	})
 
 	a.Client = client
 	return nil
@@ -213,7 +219,7 @@ func (a *App) initializeWebApp() {
 	a.WebApp.Get("/status", StatusHandler(a))
 	a.WebApp.Post("/hooks", AddHookHandler(a))
 
-	l.Info("Web App configured successfully")
+	log.I(l, "Web App configured successfully")
 }
 
 //GetMessageCount returns the message count for the queue
@@ -225,7 +231,7 @@ func (a *App) GetMessageCount() (int, error) {
 		zap.Object("queue", queue),
 	)
 
-	l.Debug("Getting message count...")
+	log.D(l, "Getting message count...")
 
 	total, err := a.Client.LLen(queue).Result()
 	if err != nil {
@@ -233,7 +239,9 @@ func (a *App) GetMessageCount() (int, error) {
 	}
 
 	messageCount := int(total)
-	l.Debug("Message count retrieved successfully.", zap.Int("messageCount", messageCount))
+	log.D(l, "Message count retrieved successfully.", func(cm log.CM) {
+		cm.Write(zap.Int("messageCount", messageCount))
+	})
 
 	return messageCount, nil
 }
@@ -259,13 +267,15 @@ func (a *App) PublishHook(method, url string, payload string) error {
 
 	start := time.Now()
 
-	l.Debug("Publishing hook...")
+	log.D(l, "Publishing hook...")
 	_, err := a.Client.RPush(queue, dataJSON).Result()
 	if err != nil {
 		l.Error("Publishing hook failed.", zap.Error(err))
 		return err
 	}
-	l.Info("Hook published successfully.", zap.Duration("PublishDuration", time.Now().Sub(start)))
+	log.I(l, "Hook published successfully.", func(cm log.CM) {
+		cm.Write(zap.Duration("PublishDuration", time.Now().Sub(start)))
+	})
 
 	return nil
 }
@@ -292,6 +302,8 @@ func (a *App) Start() {
 	)
 
 	bind := fmt.Sprintf("%s:%d", a.ServerOptions.Host, a.ServerOptions.Port)
-	l.Info("Listening for requests.", zap.String("bind", bind))
+	log.I(l, "Listening for requests.", func(cm log.CM) {
+		cm.Write(zap.String("bind", bind))
+	})
 	a.WebApp.Run(a.Engine)
 }
