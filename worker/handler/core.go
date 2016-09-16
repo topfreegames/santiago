@@ -211,7 +211,7 @@ func (w *Worker) requeueMessage(method, url, payload string, attempts int, incre
 	if incrementAttempts {
 		l.Info("Hook re-enqueue succeeded.", zap.Duration("ReEnqueueDuration", time.Now().Sub(start)))
 	} else {
-		l.Info("Hook ignore succeeded.", zap.Duration("IgnoreDuration", time.Now().Sub(start)))
+		l.Debug("Hook ignore succeeded.", zap.Duration("IgnoreDuration", time.Now().Sub(start)))
 	}
 
 	return nil
@@ -267,7 +267,7 @@ func (w *Worker) Handle(msg map[string]interface{}) error {
 				bkl.Error("Could not re-enqueue hook with backoff.", zap.Error(err))
 				return err
 			}
-			bkl.Info("Message re-enqueued successfully.")
+			bkl.Debug("Message re-enqueued successfully.")
 			return nil
 		}
 	}
@@ -348,7 +348,7 @@ func (w *Worker) Start() {
 	)
 
 	for {
-		l.Info("Subscribing to next message...")
+		l.Debug("Subscribing to next message...")
 
 		for i := 0; i < 50; i++ {
 			raven.CapturePanic(func() {

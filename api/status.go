@@ -8,23 +8,23 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
 
-	"github.com/kataras/iris"
+	"github.com/labstack/echo"
 	"github.com/uber-go/zap"
 )
 
 // StatusHandler is the handler responsible for validating that the app is still up
-func StatusHandler(app *App) func(c *iris.Context) {
-	return func(c *iris.Context) {
+func StatusHandler(app *App) func(c echo.Context) error {
+	return func(c echo.Context) error {
 		app.Logger.Debug("Starting status...")
 
 		messageCount, err := app.GetMessageCount()
 
 		if err != nil {
-			app.Logger.Error("Status failed!", zap.Error(err))
-			c.Write("Status failed")
-			c.SetStatusCode(500)
-			return
+			msg := "Status failed"
+			app.Logger.Error(msg, zap.Error(err))
+			return FailWith(500, msg, c)
 		}
 
 		items, err := json.Marshal(map[string]interface{}{
@@ -33,14 +33,12 @@ func StatusHandler(app *App) func(c *iris.Context) {
 		})
 
 		if err != nil {
-			app.Logger.Error("Status failed!", zap.Error(err))
-			c.Write("Status failed")
-			c.SetStatusCode(500)
-			return
+			msg := "Status failed"
+			app.Logger.Error(msg, zap.Error(err))
+			return FailWith(500, msg, c)
 		}
 
-		c.SetStatusCode(iris.StatusOK)
-		c.Write(string(items))
 		app.Logger.Debug("Status worked successfully.")
+		return c.String(http.StatusOK, string(items))
 	}
 }

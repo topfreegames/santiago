@@ -22,6 +22,7 @@ var sentryURL string
 var backoff int64
 var maxAttempts int
 var debug bool
+var quiet bool
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
@@ -33,7 +34,13 @@ var startCmd = &cobra.Command{
 		if debug {
 			level = zap.DebugLevel
 		}
-		logger := zap.NewJSON(level)
+		if quiet {
+			level = zap.ErrorLevel
+		}
+		logger := zap.New(
+			zap.NewJSONEncoder(),
+			level,
+		)
 
 		w := worker.New(
 			"webhooks",
@@ -73,4 +80,5 @@ func init() {
 	startCmd.Flags().IntVarP(&maxAttempts, "max-attempts", "m", 15, "Max attempts before giving up on a hook")
 	startCmd.Flags().Int64VarP(&backoff, "backoff-ms", "o", 5000, "Exponential backoff before retrying in ms")
 	startCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Starts the worker in debug mode")
+	startCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Starts the worker in quiet mode (LOGLEVEL=Error)")
 }

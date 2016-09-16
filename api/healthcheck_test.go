@@ -24,10 +24,10 @@ var _ = Describe("Healthcheck Handler", func() {
 	It("Should respond with default WORKING string", func() {
 		a, err := GetDefaultTestApp(logger)
 		Expect(err).NotTo(HaveOccurred())
-		res := Get(a, "/healthcheck")
+		status, body := Get(a, "/healthcheck")
 
-		Expect(res.Raw().StatusCode).To(Equal(http.StatusOK))
-		Expect(res.Body().Raw()).To(Equal("WORKING"))
+		Expect(status).To(Equal(http.StatusOK))
+		Expect(body).To(Equal("WORKING"))
 	})
 
 	It("Should respond with customized WORKING string", func() {
@@ -35,9 +35,9 @@ var _ = Describe("Healthcheck Handler", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		a.Config.Set("api.workingText", "OTHERWORKING")
-		res := Get(a, "/healthcheck")
+		status, body := Get(a, "/healthcheck")
 
-		Expect(res.Raw().StatusCode).To(Equal(http.StatusOK))
-		Expect(res.Body().Raw()).To(Equal("OTHERWORKING"))
+		Expect(status).To(Equal(http.StatusOK))
+		Expect(body).To(Equal("OTHERWORKING"))
 	})
 })

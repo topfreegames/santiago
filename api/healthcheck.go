@@ -7,29 +7,27 @@
 package api
 
 import (
+	"net/http"
 	"strings"
 
-	"github.com/kataras/iris"
+	"github.com/labstack/echo"
 	"github.com/uber-go/zap"
 )
 
 // HealthCheckHandler is the handler responsible for validating that the app is still up
-func HealthCheckHandler(app *App) func(c *iris.Context) {
-	return func(c *iris.Context) {
+func HealthCheckHandler(app *App) func(c echo.Context) error {
+	return func(c echo.Context) error {
 		app.Logger.Debug("Starting healthcheck...")
 
 		_, err := app.Client.Ping().Result()
 		if err != nil {
-			c.SetStatusCode(500)
 			app.Logger.Error("Healthcheck failed", zap.Error(err))
-			c.Write("Healthcheck failed")
-			return
+			return c.String(http.StatusInternalServerError, "Healthcheck failed")
 		}
 
 		workingString := app.Config.GetString("api.workingText")
-		c.SetStatusCode(iris.StatusOK)
 		workingString = strings.TrimSpace(workingString)
-		c.Write(workingString)
 		app.Logger.Debug("Everything seems fine!")
+		return c.String(http.StatusOK, workingString)
 	}
 }

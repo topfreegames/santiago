@@ -34,7 +34,7 @@ var _ = Describe("App", func() {
 	Describe("App", func() {
 		Describe("App creation", func() {
 			It("should create new app", func() {
-				app, err := api.New(nil, logger)
+				app, err := api.New(nil, logger, false)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(app).NotTo(BeNil())
 				Expect(app.ServerOptions).NotTo(BeNil())
@@ -64,7 +64,7 @@ var _ = Describe("App", func() {
 
 		Describe("App Default Configurations", func() {
 			It("Should set default configurations", func() {
-				app, err := api.New(nil, logger)
+				app, err := api.New(nil, logger, false)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(app).NotTo(BeNil())
 
@@ -77,7 +77,7 @@ var _ = Describe("App", func() {
 				options := api.DefaultOptions()
 				options.ConfigFile = "../config/default.yaml"
 
-				app, err := api.New(options, logger)
+				app, err := api.New(options, logger, false)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(app.Config).NotTo(BeNil())
 

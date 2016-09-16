@@ -41,14 +41,11 @@ var _ = Describe("Add Hook Handler", func() {
 		Expect(err).NotTo(HaveOccurred())
 		time.Sleep(50 * time.Millisecond)
 
-		res := PostJSON(app, "/hooks", map[string]interface{}{
+		status, body := PostJSON(app, "/hooks?method=POST&url=http://test.com", map[string]interface{}{
 			"test": "qwe",
-		}, map[string]string{
-			"method": "POST",
-			"url":    "http://test.com",
 		})
-		Expect(res.Raw().StatusCode).To(Equal(http.StatusOK))
-		Expect(res.Body().Raw()).To(Equal("OK"))
+		Expect(status).To(Equal(http.StatusOK))
+		Expect(body).To(Equal("OK"))
 
 		time.Sleep(50 * time.Millisecond)
 
@@ -76,16 +73,13 @@ var _ = Describe("Add Hook Handler", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		runtime := b.Time("runtime", func() {
-			res := PostJSON(app, "/hooks", map[string]interface{}{
+			status, body := PostJSON(app, "/hooks?method=POST&url=http://test.com", map[string]interface{}{
 				"test": "qwe",
-			}, map[string]string{
-				"method": "POST",
-				"url":    "http://test.com",
 			})
-			Expect(res.Raw().StatusCode).To(Equal(http.StatusOK))
-			Expect(res.Body().Raw()).To(Equal("OK"))
+			Expect(status).To(Equal(http.StatusOK))
+			Expect(body).To(Equal("OK"))
 		})
 
-		Expect(runtime.Seconds()).Should(BeNumerically("<", 0.02), "Add Hook shouldn't take too long.")
+		Expect(runtime.Seconds()).Should(BeNumerically("<", 0.1), "Add Hook shouldn't take too long.")
 	}, 200)
 })

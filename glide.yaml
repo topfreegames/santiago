@@ -9,9 +9,12 @@ import:
 - package: github.com/satori/go.uuid
 - package: github.com/Joker/jade
 - package: gopkg.in/gavv/httpexpect.v1
-- package: github.com/kataras/iris
 - package: gopkg.in/redis.v4
   version: ^4.0.2
 - package: gopkg.in/bsm/ratelimit.v1
 - package: github.com/rcrowley/go-metrics
 - package: github.com/getsentry/raven-go
+- package: github.com/labstack/echo
+  version: ^2.0.2
+- package: github.com/labstack/gommon
+  version: 431777a5117c8de4352a400dad1e2a55f484b189

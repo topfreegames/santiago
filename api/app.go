@@ -17,8 +17,10 @@ import (
 	"gopkg.in/redis.v4"
 
 	"github.com/getsentry/raven-go"
-	"github.com/kataras/iris"
-	"github.com/kataras/iris/config"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/engine"
+	"github.com/labstack/echo/engine/fasthttp"
+	"github.com/labstack/echo/engine/standard"
 	"github.com/rcrowley/go-metrics"
 	"github.com/spf13/viper"
 	"github.com/uber-go/zap"
@@ -26,17 +28,19 @@ import (
 
 //App is responsible for Santiago's API
 type App struct {
+	Fast          bool
 	Config        *viper.Viper
 	Logger        zap.Logger
 	ServerOptions *Options
-	WebApp        *iris.Framework
+	Engine        engine.Server
+	WebApp        *echo.Echo
 	Client        *redis.Client
 	Queue         string
 	Errors        metrics.EWMA
 }
 
 //New opens a new channel connection
-func New(options *Options, logger zap.Logger) (*App, error) {
+func New(options *Options, logger zap.Logger, fast bool) (*App, error) {
 	if options == nil {
 		options = DefaultOptions()
 	}
@@ -50,6 +54,7 @@ func New(options *Options, logger zap.Logger) (*App, error) {
 		Logger:        l,
 		ServerOptions: options,
 		Config:        viper.New(),
+		Fast:          fast,
 		Queue:         "webhooks",
 	}
 
@@ -191,16 +196,18 @@ func (a *App) initializeWebApp() {
 		zap.Bool("debug", debug),
 	)
 
-	c := config.Iris{
-		DisableBanner: true,
+	a.Engine = standard.New(fmt.Sprintf("%s:%d", a.ServerOptions.Host, a.ServerOptions.Port))
+	if a.Fast {
+		engine := fasthttp.New(fmt.Sprintf("%s:%d", a.ServerOptions.Host, a.ServerOptions.Port))
+		engine.ReadBufferSize = 30000
+		a.Engine = engine
 	}
+	a.WebApp = echo.New()
 
-	a.WebApp = iris.New(c)
-
-	a.WebApp.Use(NewLoggerMiddleware(a.Logger))
-	a.WebApp.Use(&RecoveryMiddleware{OnError: a.onErrorHandler})
-	a.WebApp.Use(&VersionMiddleware{App: a})
-	a.WebApp.Use(&SentryMiddleware{App: a})
+	a.WebApp.Use(NewLoggerMiddleware(a.Logger).Serve)
+	a.WebApp.Use(NewRecoveryMiddleware(a.onErrorHandler).Serve)
+	a.WebApp.Use(NewVersionMiddleware().Serve)
+	a.WebApp.Use(NewSentryMiddleware(a).Serve)
 
 	a.WebApp.Get("/healthcheck", HealthCheckHandler(a))
 	a.WebApp.Get("/status", StatusHandler(a))
@@ -286,5 +293,5 @@ func (a *App) Start() {
 
 	bind := fmt.Sprintf("%s:%d", a.ServerOptions.Host, a.ServerOptions.Port)
 	l.Info("Listening for requests.", zap.String("bind", bind))
-	a.WebApp.Listen(bind)
+	a.WebApp.Run(a.Engine)
 }

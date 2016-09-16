@@ -8,16 +8,17 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 
-	"github.com/kataras/iris"
+	"github.com/labstack/echo"
 	"github.com/uber-go/zap"
 )
 
 // AddHookHandler sends new hooks
-func AddHookHandler(app *App) func(c *iris.Context) {
-	return func(c *iris.Context) {
-		method := c.URLParam("method")
-		url := c.URLParam("url")
+func AddHookHandler(app *App) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		method := c.QueryParam("method")
+		url := c.QueryParam("url")
 
 		l := app.Logger.With(
 			zap.String("source", "addHookHandler"),
@@ -28,21 +29,24 @@ func AddHookHandler(app *App) func(c *iris.Context) {
 
 		if method == "" || url == "" {
 			l.Warn("Request validation failed.")
-			FailWith(400, "Both 'method' and 'url' must be provided as querystring parameters", c)
-			return
+			return FailWith(http.StatusBadRequest, "Both 'method' and 'url' must be provided as querystring parameters", c)
 		}
 
 		l.Debug("Sending hook to queue...")
-		payload := string(c.Request.Body())
-
-		err := app.PublishHook(method, url, payload)
+		payload, err := GetRequestBody(c)
 		if err != nil {
-			l.Error("Hook failed to be published.", zap.Error(err))
-			FailWith(500, fmt.Sprintf("Hook failed to be published (%s).", err.Error()), c)
-			return
+			msg := "Failed to retrieve payload in request body."
+			l.Error(msg, zap.Error(err))
+			return FailWith(http.StatusBadRequest, msg, c)
 		}
 
-		c.Write("OK")
+		err = app.PublishHook(method, url, payload)
+		if err != nil {
+			l.Error("Hook failed to be published.", zap.Error(err))
+			return FailWith(500, fmt.Sprintf("Hook failed to be published (%s).", err.Error()), c)
+		}
+
 		l.Debug("Hook sent to queue successfully...")
+		return c.String(http.StatusOK, "OK")
 	}
 }

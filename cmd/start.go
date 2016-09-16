@@ -17,6 +17,8 @@ import (
 var apiHost string
 var apiPort int
 var isDebug bool
+var fast bool
+var quiet bool
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
@@ -28,14 +30,21 @@ var startCmd = &cobra.Command{
 		if isDebug {
 			ll = zap.DebugLevel
 		}
-		logger := zap.NewJSON(ll)
+		if quiet {
+			ll = zap.ErrorLevel
+		}
+		logger := zap.New(
+			zap.NewJSONEncoder(),
+			ll,
+		)
+
 		options := api.NewOptions(
 			apiHost,
 			apiPort,
 			isDebug,
 			APIConfigurationFile,
 		)
-		app, err := api.New(options, logger)
+		app, err := api.New(options, logger, fast)
 		if err != nil {
 			log.Fatalf("Could not start server: %s", err)
 			return
@@ -50,4 +59,6 @@ func init() {
 	startCmd.Flags().StringVarP(&apiHost, "host", "b", "0.0.0.0", "Host to bind API to")
 	startCmd.Flags().IntVarP(&apiPort, "port", "p", 3000, "Port to bind API to")
 	startCmd.Flags().BoolVarP(&isDebug, "debug", "d", false, "Should Santiago run in debug mode?")
+	startCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Should Santiago run in quiet mode? (LOGLEVEL=ERROR)")
+	startCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Run with FastHTTP")
 }

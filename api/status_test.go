@@ -28,12 +28,12 @@ var _ = Describe("Status Handler", func() {
 		a.Queue = uuid.NewV4().String()
 
 		Expect(err).NotTo(HaveOccurred())
-		res := Get(a, "/status")
+		status, body := Get(a, "/status")
 
-		Expect(res.Raw().StatusCode).To(Equal(http.StatusOK))
+		Expect(status).To(Equal(http.StatusOK))
 
 		var obj map[string]interface{}
-		err = json.Unmarshal([]byte(res.Body().Raw()), &obj)
+		err = json.Unmarshal([]byte(body), &obj)
 		Expect(obj["errors"]).To(BeEquivalentTo(0.0))
 		Expect(obj["messagesInQueue"]).To(BeEquivalentTo(0))
 	})
@@ -47,12 +47,12 @@ var _ = Describe("Status Handler", func() {
 		}
 
 		Expect(err).NotTo(HaveOccurred())
-		res := Get(a, "/status")
+		status, body := Get(a, "/status")
 
-		Expect(res.Raw().StatusCode).To(Equal(http.StatusOK))
+		Expect(status).To(Equal(http.StatusOK))
 
 		var obj map[string]interface{}
-		err = json.Unmarshal([]byte(res.Body().Raw()), &obj)
+		err = json.Unmarshal([]byte(body), &obj)
 		Expect(obj["errors"]).To(BeEquivalentTo(0.0))
 		Expect(obj["messagesInQueue"]).To(BeEquivalentTo(10))
 	})
@@ -62,12 +62,12 @@ var _ = Describe("Status Handler", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		runtime := b.Time("runtime", func() {
-			res := Get(app, "/status")
-			Expect(res.Raw().StatusCode).To(Equal(http.StatusOK))
-			Expect(res.Body().Raw()).NotTo(BeEmpty())
+			status, body := Get(app, "/status")
+			Expect(status).To(Equal(http.StatusOK))
+			Expect(body).NotTo(BeEmpty())
 		})
 
-		Expect(runtime.Seconds()).Should(BeNumerically("<", 0.02), "Status shouldn't take too long.")
+		Expect(runtime.Seconds()).Should(BeNumerically("<", 0.1), "Status shouldn't take too long.")
 	}, 200)
 
 })
