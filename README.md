@@ -20,4 +20,3 @@ Santiago has up-to-date docs at [http://snt.readthedocs.io](http://snt.readthedo
 # Contributing
 
 Just fork, code, test and Pull Request. Rinse and Repeat.
-
