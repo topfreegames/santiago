@@ -32,6 +32,7 @@ var smokeCmd = &cobra.Command{
 func doSmokeTest() {
 	requestBinName := getRequestBin()
 	requestSantiagoHook(requestBinName)
+	time.Sleep(1 * time.Second)
 	requestCount := getRequestCount(requestBinName)
 	if requestCount != 1 {
 		binURL := fmt.Sprintf("https://requestb.in/%s?inspect", requestBinName)
