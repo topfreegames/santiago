@@ -34,14 +34,21 @@ func AddHookHandler(app *App) func(c echo.Context) error {
 		}
 
 		log.D(l, "Sending hook to queue...")
-		payload, err := GetRequestBody(c)
+		var payload string
+		var err error
+		err = WithSegment("payload", c, func() error {
+			payload, err = GetRequestBody(c)
+			return err
+		})
 		if err != nil {
 			msg := "Failed to retrieve payload in request body."
 			l.Error(msg, zap.Error(err))
 			return FailWith(http.StatusBadRequest, msg, c)
 		}
 
-		err = app.PublishHook(method, url, payload)
+		err = WithSegment("publish-hook", c, func() error {
+			return app.PublishHook(method, url, payload)
+		})
 		if err != nil {
 			l.Error("Hook failed to be published.", zap.Error(err))
 			return FailWith(500, fmt.Sprintf("Hook failed to be published (%s).", err.Error()), c)

@@ -20,7 +20,12 @@ func StatusHandler(app *App) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		log.D(app.Logger, "Starting status...")
 
-		messageCount, err := app.GetMessageCount()
+		var err error
+		var messageCount int
+		err = WithSegment("retrieve-message-count", c, func() error {
+			messageCount, err = app.GetMessageCount()
+			return err
+		})
 
 		if err != nil {
 			msg := "Status failed"

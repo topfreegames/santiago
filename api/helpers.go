@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 
 	"github.com/labstack/echo"
+	newrelic "github.com/newrelic/go-agent"
 )
 
 // FailWith fails with the specified message
@@ -50,4 +51,25 @@ func GetRequestJSON(payloadStruct interface{}, c echo.Context) error {
 	}
 
 	return nil
+}
+
+//GetTX returns new relic transaction
+func GetTX(c echo.Context) newrelic.Transaction {
+	tx := c.Get("txn")
+	if tx == nil {
+		return nil
+	}
+
+	return tx.(newrelic.Transaction)
+}
+
+//WithSegment adds a segment to new relic transaction
+func WithSegment(name string, c echo.Context, f func() error) error {
+	tx := GetTX(c)
+	if tx == nil {
+		return f()
+	}
+	segment := newrelic.StartSegment(tx, name)
+	defer segment.End()
+	return f()
 }

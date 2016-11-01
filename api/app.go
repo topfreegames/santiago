@@ -21,6 +21,7 @@ import (
 	"github.com/labstack/echo/engine"
 	"github.com/labstack/echo/engine/fasthttp"
 	"github.com/labstack/echo/engine/standard"
+	newrelic "github.com/newrelic/go-agent"
 	"github.com/rcrowley/go-metrics"
 	"github.com/spf13/viper"
 	"github.com/topfreegames/santiago/log"
@@ -38,6 +39,7 @@ type App struct {
 	Client        *redis.Client
 	Queue         string
 	Errors        metrics.EWMA
+	NewRelic      newrelic.Application
 }
 
 //New opens a new channel connection
@@ -86,6 +88,10 @@ func (a *App) initialize() error {
 		return err
 	}
 	a.connectRaven()
+	err = a.configureNewRelic()
+	if err != nil {
+		return err
+	}
 	a.initializeWebApp()
 
 	l.Info(
@@ -194,6 +200,31 @@ func (a *App) connectRaven() {
 	raven.SetDSN(a.Config.GetString("api.sentry.url"))
 }
 
+func (a *App) configureNewRelic() error {
+	newRelicKey := a.Config.GetString("newrelic.key")
+
+	l := a.Logger.With(
+		zap.String("source", "app"),
+		zap.String("operation", "configureNewRelic"),
+	)
+
+	config := newrelic.NewConfig("santiago", newRelicKey)
+	if newRelicKey == "" {
+		l.Info("New Relic is not enabled..")
+		config.Enabled = false
+	}
+	nr, err := newrelic.NewApplication(config)
+	if err != nil {
+		l.Error("Failed to initialize New Relic.", zap.Error(err))
+		return err
+	}
+
+	a.NewRelic = nr
+	l.Info("Initialized New Relic successfully.")
+
+	return nil
+}
+
 func (a *App) initializeWebApp() {
 	debug := a.ServerOptions.Debug
 
@@ -214,6 +245,7 @@ func (a *App) initializeWebApp() {
 	a.WebApp.Use(NewRecoveryMiddleware(a.onErrorHandler).Serve)
 	a.WebApp.Use(NewVersionMiddleware().Serve)
 	a.WebApp.Use(NewSentryMiddleware(a).Serve)
+	a.WebApp.Use(NewNewRelicMiddleware(a, a.Logger).Serve)
 
 	a.WebApp.Get("/healthcheck", HealthCheckHandler(a))
 	a.WebApp.Get("/status", StatusHandler(a))

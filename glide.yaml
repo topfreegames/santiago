@@ -18,3 +18,4 @@ import:
   version: ^2.0.2
 - package: github.com/labstack/gommon
   version: 431777a5117c8de4352a400dad1e2a55f484b189
+- package: github.com/newrelic/go-agent
