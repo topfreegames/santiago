@@ -14,6 +14,7 @@ Santiago uses Redis to publish hooks to and to listen for incoming hooks. The co
 * `SNT_API_REDIS_PASSWORD` - Password of the Redis Server to listen for hooks;
 * `SNT_API_REDIS_DB` - DB Number of the Redis Server to listen for hooks;
 * `SNT_API_USE_FAST_HTTP` - Whether to use fasthttp for echo engine or not. This env should be either "--fast" or "".
+* `SNT_NEWRELIC_KEY` - New Relic account key. If present will enable New Relic.
 
 ## Binaries
 
