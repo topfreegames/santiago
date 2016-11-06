@@ -53,15 +53,19 @@ func getTestRedisConn() (*redis.Client, error) {
 	return client, nil
 }
 
-func pushHook(client *redis.Client, queue, method, url string, payload map[string]interface{}) error {
+func pushHook(client *redis.Client, queue, method, url string, payload map[string]interface{}, expiration ...time.Time) error {
 	payloadJSON, _ := json.Marshal(payload)
 
-	dataJSON, _ := json.Marshal(map[string]interface{}{
+	data := map[string]interface{}{
 		"method":   method,
 		"url":      url,
 		"payload":  string(payloadJSON),
 		"attempts": 0,
-	})
+	}
+	if len(expiration) > 0 {
+		data["expires"] = expiration[0].Unix()
+	}
+	dataJSON, _ := json.Marshal(data)
 	count, err := client.RPush(queue, dataJSON).Result()
 	if err != nil {
 		return err
@@ -172,6 +176,7 @@ var _ = Describe("Santiago Worker", func() {
 			resp := (*responses)[0]["payload"].(map[string]interface{})
 			Expect(int(resp["qwe"].(float64))).To(Equal(123))
 		})
+
 		It("should requeue and process later if webhook down", func() {
 			hookURL := "/webhook-retry"
 			queue := uuid.NewV4().String()
@@ -281,6 +286,66 @@ var _ = Describe("Santiago Worker", func() {
 
 				Expect(hook["backoff"]).To(BeNumerically(">", 10*ms*power))
 			}
+		})
+
+		It("should subscribe to webhook if message has expiration but not expired", func() {
+			queue := uuid.NewV4().String()
+			responses := startRouteHandler([]string{"/webhook-subscribed-not-expired"}, 52525)
+
+			worker := New(
+				queue,
+				"127.0.0.1", 57575, "", 0,
+				10, logger, true, 10*time.Millisecond,
+				"", 10, &RealClock{},
+			)
+
+			err := pushHook(
+				testClient, queue, "POST",
+				"http://localhost:52525/webhook-subscribed-not-expired",
+				map[string]interface{}{
+					"qwe": 123,
+				},
+				time.Now().Add(1*time.Hour),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = worker.ProcessSubscription()
+			Expect(err).NotTo(HaveOccurred())
+
+			time.Sleep(10 * time.Millisecond)
+
+			Expect(*responses).To(HaveLen(1))
+			resp := (*responses)[0]["payload"].(map[string]interface{})
+			Expect(int(resp["qwe"].(float64))).To(Equal(123))
+		})
+
+		It("should not send webhook if message is expired", func() {
+			queue := uuid.NewV4().String()
+			responses := startRouteHandler([]string{"/webhook-expired"}, 52525)
+
+			worker := New(
+				queue,
+				"127.0.0.1", 57575, "", 0,
+				10, logger, true, 10*time.Millisecond,
+				"", 10, &RealClock{},
+			)
+
+			err := pushHook(
+				testClient, queue, "POST",
+				"http://localhost:52525/webhook-expired",
+				map[string]interface{}{
+					"qwe": 123,
+				},
+				time.Now().Add(-1*time.Hour),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = worker.ProcessSubscription()
+			Expect(err).NotTo(HaveOccurred())
+
+			time.Sleep(10 * time.Millisecond)
+
+			Expect(*responses).To(HaveLen(0))
 		})
 	})
 })

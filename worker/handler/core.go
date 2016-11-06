@@ -247,6 +247,18 @@ func (w *Worker) Handle(msg map[string]interface{}) error {
 	method := msg["method"].(string)
 	url := msg["url"].(string)
 
+	if att, ok := msg["expires"]; ok {
+		dt := int64(att.(float64))
+		expiration := time.Unix(dt, 0)
+
+		l = l.With(zap.Time("expires", expiration))
+
+		if expiration.Before(time.Now()) {
+			l.Warn("Failed to send message since it's expired.")
+			return nil
+		}
+	}
+
 	attempts := 0
 	if att, ok := msg["attempts"]; ok {
 		switch att.(type) {
@@ -286,6 +298,7 @@ func (w *Worker) Handle(msg map[string]interface{}) error {
 	log.D(l, "Performing request...", func(cm log.CM) {
 		cm.Write(zap.String("payload", payload), zap.Int("attempts", attempts))
 	})
+
 	status, _, err := w.DoRequest(method, url, payload)
 	if err != nil {
 		l.Error("Could not process hook, trying again later.", zap.Error(err), zap.Int("attempts", attempts))
