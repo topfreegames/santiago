@@ -347,5 +347,51 @@ var _ = Describe("Santiago Worker", func() {
 
 			Expect(*responses).To(HaveLen(0))
 		})
+
+		It("should send webhook even if queue is full of backed-off messages", func() {
+			queue := uuid.NewV4().String()
+			responses := startRouteHandler([]string{"/webhook-queue-full"}, 52525)
+
+			worker := New(
+				queue,
+				"127.0.0.1", 57575, "", 0,
+				10, logger, true, 10*time.Millisecond,
+				"", 10, &mockClock{currentTime: 0},
+			)
+
+			msg := map[string]interface{}{
+				"attempts": 4,
+				"backoff":  320000000,
+				"method":   "POST",
+				"payload":  "{\"qwe\": 123}",
+				"url":      "http://localhost:52525/webhook-queue-full",
+			}
+			msgData, _ := json.Marshal(msg)
+
+			err := pushHook(
+				testClient, queue, "POST",
+				"http://localhost:52525/webhook-queue-full",
+				map[string]interface{}{
+					"qwe": 123,
+				},
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			for i := 0; i < 1000; i++ {
+				worker.Client.LPush(queue, msgData)
+			}
+
+			for i := 0; i < 1001; i++ {
+				err = worker.ProcessSubscription()
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			time.Sleep(10 * time.Millisecond)
+
+			Expect(*responses).To(HaveLen(1))
+			resp := (*responses)[0]["payload"].(map[string]interface{})
+			Expect(int(resp["qwe"].(float64))).To(Equal(123))
+		})
+
 	})
 })
