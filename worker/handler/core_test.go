@@ -139,6 +139,8 @@ var _ = Describe("Santiago Worker", func() {
 			err := worker.Handle(msg)
 			Expect(err).NotTo(HaveOccurred())
 
+			time.Sleep(50 * time.Millisecond)
+
 			Expect(*responses).To(HaveLen(1))
 
 			resp := (*responses)[0]["payload"].(map[string]interface{})
@@ -198,7 +200,9 @@ var _ = Describe("Santiago Worker", func() {
 
 			before := time.Now().UnixNano()
 			err = worker.ProcessSubscription()
-			Expect(err).To(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
+
+			time.Sleep(50 * time.Millisecond)
 
 			res, err := testClient.LRange(queue, 0, 1).Result()
 			Expect(err).NotTo(HaveOccurred())
@@ -223,6 +227,7 @@ var _ = Describe("Santiago Worker", func() {
 			err = worker.ProcessSubscription()
 			Expect(err).NotTo(HaveOccurred())
 
+			time.Sleep(50 * time.Millisecond)
 			Expect(*responses).To(HaveLen(1))
 
 			resp := (*responses)[0]["payload"].(map[string]interface{})
@@ -250,8 +255,9 @@ var _ = Describe("Santiago Worker", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			err = worker.ProcessSubscription()
-			Expect(err).To(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
+			time.Sleep(50 * time.Millisecond)
 			res, err := testClient.LRange(queue, 0, 1).Result()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -276,7 +282,8 @@ var _ = Describe("Santiago Worker", func() {
 				power := int64(math.Pow(2, float64(i)))
 				clock.currentTime = 10 * int64(power) * ms
 				err = worker.ProcessSubscription()
-				Expect(err).To(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
+				time.Sleep(10 * time.Millisecond)
 
 				res, err = testClient.LRange(queue, 0, 1).Result()
 				Expect(err).NotTo(HaveOccurred())

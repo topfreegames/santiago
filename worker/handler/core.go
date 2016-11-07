@@ -299,31 +299,34 @@ func (w *Worker) Handle(msg map[string]interface{}) error {
 		cm.Write(zap.String("payload", payload), zap.Int("attempts", attempts))
 	})
 
-	status, _, err := w.DoRequest(method, url, payload)
-	if err != nil {
-		l.Error("Could not process hook, trying again later.", zap.Error(err), zap.Int("attempts", attempts))
-		err2 := w.requeueMessage(method, url, payload, attempts, true)
-		if err2 != nil {
-			l.Error("Could not re-enqueue hook.", zap.Error(err2))
+	go func() {
+		status, _, err := w.DoRequest(method, url, payload)
+		if err != nil {
+			l.Error("Could not process hook, trying again later.", zap.Error(err), zap.Int("attempts", attempts))
+			err2 := w.requeueMessage(method, url, payload, attempts, true)
+			if err2 != nil {
+				l.Error("Could not re-enqueue hook.", zap.Error(err2))
+			}
+			return
 		}
-		return err
-	}
-	if status > 399 {
-		err := fmt.Errorf("Error requesting webhook. Status code: %d", status)
-		l.Error(
-			"Could not process hook, trying again later.",
-			zap.Int("statusCode", status),
-			zap.Error(err),
-			zap.Int("attempts", attempts),
-		)
-		err2 := w.requeueMessage(method, url, payload, attempts, true)
-		if err2 != nil {
-			l.Error("Could not re-enqueue hook.", zap.Error(err2))
+		if status > 399 {
+			err := fmt.Errorf("Error requesting webhook. Status code: %d", status)
+			l.Error(
+				"Could not process hook, trying again later.",
+				zap.Int("statusCode", status),
+				zap.Error(err),
+				zap.Int("attempts", attempts),
+			)
+			err2 := w.requeueMessage(method, url, payload, attempts, true)
+			if err2 != nil {
+				l.Error("Could not re-enqueue hook.", zap.Error(err2))
+			}
+			return
 		}
-		return err
-	}
 
-	log.I(l, "Webhook processed successfully.")
+		log.I(l, "Webhook processed successfully.")
+	}()
+
 	return nil
 }
 
